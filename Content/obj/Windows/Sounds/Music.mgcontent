@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PipelineBuildEvent xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SourceFile>C:/Users/filip/Google Drive/Source Codes/Abstract Shooter/SourceCode/Content/Sounds/Music.mp3</SourceFile>
+  <SourceTime>2016-06-04T14:35:29.9856648+02:00</SourceTime>
+  <DestFile>C:/Users/filip/Google Drive/Source Codes/Abstract Shooter/SourceCode/Content/bin/Windows/Sounds/Music.xnb</DestFile>
+  <DestTime>2016-06-10T00:51:46.2211017+02:00</DestTime>
+  <Importer>Mp3Importer</Importer>
+  <ImporterTime>2016-03-30T08:36:08+02:00</ImporterTime>
+  <Processor>SongProcessor</Processor>
+  <ProcessorTime>2016-03-30T08:36:08+02:00</ProcessorTime>
+  <Parameters>
+    <Key>Quality</Key>
+    <Value>Best</Value>
+  </Parameters>
+  <Dependencies />
+  <BuildAsset />
+  <BuildOutput>
+    <string>C:/Users/filip/Google Drive/Source Codes/Abstract Shooter/SourceCode/Content/bin/Windows/Sounds/Music.wma</string>
+  </BuildOutput>
+</PipelineBuildEvent>
