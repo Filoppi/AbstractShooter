@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace AbstractShooter.States
@@ -14,21 +13,27 @@ namespace AbstractShooter.States
         protected float TimeLeft = 60;
         protected int EnemiesLeft = 0;
         protected bool isEndless = false;
+        protected int levelIndex = 0;
 
-        public override void Init(GraphicsDevice graphicsDevice, ContentManager content)
+        public override void Initialize()
         {
-            spriteSheet = content.Load<Texture2D>(@"Textures\SpriteSheet");
-
+            base.Initialize();
+            spriteSheet = Game1.Get.Content.Load<Texture2D>(@"Textures\SpriteSheet");
             GameManager.Initialize(Difficulty, NOfPlayers, EnemySpawTimer, LevelDimensionX, LevelDimensionY, TimeLeft, EnemiesLeft, isEndless);
-            GameManager.lastPlayedLevel = 1;
+            if (!isEndless)
+            {
+                GameManager.lastPlayedLevel = levelIndex;
+            }
         }
         public override void Update(GameTime gameTime)
         {
+            base.Update(gameTime);
             GameManager.Update(gameTime);
         }
-        public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ContentManager content)
+        public override void Draw()
         {
             GameManager.Draw();
+            base.Draw();
         }
     }
 }

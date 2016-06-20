@@ -78,36 +78,43 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Game1.cs" />
+    <Compile Include="Source\Game1.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Source\GamePlay\Entity.cs" />
-    <Compile Include="Source\GamePlay\Grid.cs" />
-    <Compile Include="Source\GamePlay\Menu.cs" />
-    <Compile Include="Source\Characters\Enemy.cs" />
-    <Compile Include="Source\PostProcess\Bloom.cs" />
-    <Compile Include="Source\PostProcess\BloomSettings.cs" />
-    <Compile Include="Source\Characters\Enemies\EnemySeeker.cs" />
-    <Compile Include="Source\Characters\Enemies\EnemyWanderer.cs" />
-    <Compile Include="Source\Characters\Character.cs" />
-    <Compile Include="Source\Characters\Player.cs" />
-    <Compile Include="Source\Particle.cs" />
-    <Compile Include="Source\Sprite.cs" />
+    <Compile Include="Source\Components\BehaveComponents.cs" />
+    <Compile Include="Source\Components\Component.cs" />
+    <Compile Include="Source\Entities\Actor.cs" />
+    <Compile Include="Source\Graphics\Particle.cs" />
+    <Compile Include="Source\Management\GamePlay\Grid.cs" />
+    <Compile Include="Source\Management\InputManager.cs" />
+    <Compile Include="Source\Management\Menu.cs" />
+    <Compile Include="Source\Entities\Characters\Enemy.cs" />
+    <Compile Include="Source\Management\SaveManager.cs" />
+    <Compile Include="Source\Graphics\PostProcess\Bloom.cs" />
+    <Compile Include="Source\Graphics\PostProcess\BloomSettings.cs" />
+    <Compile Include="Source\Entities\Characters\Enemies\EnemySeeker.cs" />
+    <Compile Include="Source\Entities\Characters\Enemies\EnemyWanderer.cs" />
+    <Compile Include="Source\Entities\Characters\Character.cs" />
+    <Compile Include="Source\Entities\Characters\Player.cs" />
+    <Compile Include="Source\Components\SpriteComponent.cs" />
     <Compile Include="Source\States\GameOver.cs" />
     <Compile Include="Source\States\Level.cs" />
-    <Compile Include="Source\States\Levels.cs" />
-    <Compile Include="Source\GamePlay\Camera.cs" />
-    <Compile Include="Source\GamePlay\EffectsManager.cs" />
-    <Compile Include="Source\GamePlay\GameManager.cs" />
-    <Compile Include="Source\GamePlay\ObjectManager.cs" />
-    <Compile Include="Source\GamePlay\SoundsManager.cs" />
-    <Compile Include="Source\GamePlay\TileMap.cs" />
-    <Compile Include="Source\GamePlay\WeaponsAndFireManager.cs" />
-    <Compile Include="Source\States\Management\State.cs" />
-    <Compile Include="Source\States\Management\StateManager.cs" />
-    <Compile Include="Source\States\Menu.cs" />
+    <Compile Include="Source\States\Specific\MainMenuState.cs" />
+    <Compile Include="Source\States\Specific\Levels.cs" />
+    <Compile Include="Source\Management\GamePlay\Camera.cs" />
+    <Compile Include="Source\Management\GamePlay\EffectsManager.cs" />
+    <Compile Include="Source\Management\GameManager.cs" />
+    <Compile Include="Source\Management\GamePlay\ObjectManager.cs" />
+    <Compile Include="Source\Management\GamePlay\SoundsManager.cs" />
+    <Compile Include="Source\Management\GamePlay\TileMap.cs" />
+    <Compile Include="Source\Management\GamePlay\WeaponsAndFireManager.cs" />
+    <Compile Include="Source\Management\State.cs" />
+    <Compile Include="Source\Management\StateManager.cs" />
+    <Compile Include="Source\States\MenuState.cs" />
     <Compile Include="Source\States\NextLevel.cs" />
     <Compile Include="Source\States\Pause.cs" />
+    <Compile Include="Source\Utility\MathExtention.cs" />
+    <Compile Include="Source\Utility\Primitives2DDraw.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework">

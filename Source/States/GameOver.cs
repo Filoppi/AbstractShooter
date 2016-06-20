@@ -8,49 +8,45 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using InputManagement;
 
 namespace AbstractShooter.States
 {
     public class GameOver : State
     {
-        private float gameOverTimer;
-        private float gameOverWait;
+        private float gameOverTimer = 0F;
+        private const float okActionWait = 0.54F;
+        private const float gameOverWait = 4.56F;
+        private ActionBinding enterAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.Space, KeyAction.Pressed) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.A, KeyAction.Pressed) });
 
-        public override void Init(GraphicsDevice graphicsDevice, ContentManager content)
+        public override void Initialize()
         {
+            base.Initialize();
             SoundsManager.PauseMusic();
             SoundsManager.PlaySpawn();
-            gameOverTimer = 0.0f;
-            gameOverWait = 4.56f;
-            titleScreen = content.Load<Texture2D>(@"Textures\TitleScreen");
-            //font1 = content.Load<SpriteFont>(@"Fonts\Font1");
+            titleScreen = Game1.Get.Content.Load<Texture2D>(@"Textures\TitleScreen");
         }
         public override void Update(GameTime gameTime)
         {
-            gameOverTimer += (float)gameTime.ElapsedGameTime.TotalSeconds; // * GameManager.TimeScale;
-            if (gameOverTimer > gameOverWait)
+            base.Update(gameTime);
+            gameOverTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (gameOverTimer > gameOverWait || (gameOverTimer > okActionWait && enterAction.CheckBindings()))
             {
-                StateManager.SetState(new States.Menu());
-                gameOverTimer = 0.0f;
-            }
-            if (gameOverTimer > 0.54 && ((GamePad.GetState(PlayerIndex.One).Buttons.A == ButtonState.Pressed) ||
-                (Keyboard.GetState().IsKeyDown(Keys.Space))))
-            {
-                StateManager.SetState(new States.Menu());
-                gameOverTimer = 0.0f;
+                StateManager.CreateAndSetState<States.MainMenuState>();
             }
         }
-        public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ContentManager content)
+        public override void Draw()
         {
+            base.Draw();
             float stringScale = 0.895F;
             string stringToDraw = "G A M E    O V E R !";
             Vector2 StringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
 
-            StateManager.spriteBatch.DrawString(
+            Game1.spriteBatch.DrawString(
             Game1.defaultFont,
             stringToDraw,
-            new Vector2(((Game1.CurResolutionX / 2.0f) - ((StringSize.X / 2F) * Game1.ResolutionScale)), ((Game1.CurResolutionY / 2.0f) - ((StringSize.Y / 2F) * Game1.ResolutionScale))),
-                Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+            new Vector2(((Game1.curResolutionX / 2.0f) - ((StringSize.X / 2F) * Game1.resolutionScale)), ((Game1.curResolutionY / 2.0f) - ((StringSize.Y / 2F) * Game1.resolutionScale))),
+                Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
         }
     }
 }
