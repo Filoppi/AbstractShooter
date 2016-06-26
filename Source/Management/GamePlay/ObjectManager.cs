@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using AbstractShooter.States;
 
 namespace AbstractShooter
 {
@@ -17,13 +18,13 @@ namespace AbstractShooter
         {
             if (NOfPlayers == 1)
             {
-                APlayer P1 = new APlayer(new Vector2(GameManager.LevelDimensionX / 2.0f, GameManager.LevelDimensionY / 2.0f));
+                APlayer P1 = new APlayer(new Vector2(((Level)StateManager.currentState).LevelDimensionX / 2.0f, ((Level)StateManager.currentState).LevelDimensionY / 2.0f));
             }
             else if (NOfPlayers == 2)
             {
-                APlayer P1 = new APlayer(new Vector2(GameManager.LevelDimensionX / 2.0f, GameManager.LevelDimensionY / 2.0f));
+                APlayer P1 = new APlayer(new Vector2(((Level)StateManager.currentState).LevelDimensionX / 2.0f, ((Level)StateManager.currentState).LevelDimensionY / 2.0f));
                 //Adds a second player
-                APlayer P2 = new APlayer(new Vector2(GameManager.LevelDimensionX / 2.0f, GameManager.LevelDimensionY / 2.0f));
+                APlayer P2 = new APlayer(new Vector2(((Level)StateManager.currentState).LevelDimensionX / 2.0f, ((Level)StateManager.currentState).LevelDimensionY / 2.0f));
             }
         }
 
@@ -35,32 +36,35 @@ namespace AbstractShooter
             //Avoids infinite attempts in case the map is too small.
             int counter = 0;
 
-            while (counter < 40 && (newX < 32 || newX > GameManager.LevelDimensionX - 32 || newY < 32 || newY > GameManager.LevelDimensionY - 32))
+            while (counter < 40 && (newX < 32 || newX > ((Level)StateManager.currentState).LevelDimensionX - 32 || newY < 32 || newY > ((Level)StateManager.currentState).LevelDimensionY - 32))
             {
                 int RandSide = rand.Next(0, 4);
                 float RandPosition = (float)rand.Next(-50, 51) / 100.0f;
 
                 List<APlayer> players = StateManager.currentState.GetAllActorsOfClass<APlayer>();
 
-                if (RandSide == 0) //Spawn from left of player
+                if (players.Count > 0)
                 {
-                    newX = players[0].WorldLocation.X - (Game1.curResolutionX / 2) - 45;
-                    newY = players[0].WorldLocation.Y + (Game1.curResolutionY * RandPosition);
-                }
-                else if (RandSide == 1) //Spawn from right of player
-                {
-                    newX = players[0].WorldLocation.X + (Game1.curResolutionX / 2) + 45;
-                    newY = players[0].WorldLocation.Y + (Game1.curResolutionY * RandPosition);
-                }
-                else if (RandSide == 2) //Spawn from top of player
-                {
-                    newX = players[0].WorldLocation.X + (Game1.curResolutionX * RandPosition);
-                    newY = players[0].WorldLocation.Y - (Game1.curResolutionY / 2) - 30;
-                }
-                else //if (RandSide == 3) //Spawn from bottom of player
-                {
-                    newX = players[0].WorldLocation.X + (Game1.curResolutionX * RandPosition);
-                    newY = players[0].WorldLocation.Y + (Game1.curResolutionY / 2) + 30;
+                    if (RandSide == 0) //Spawn from left of player
+                    {
+                        newX = players[0].WorldLocation.X - (Game1.curResolutionX / 2) - 45;
+                        newY = players[0].WorldLocation.Y + (Game1.curResolutionY * RandPosition);
+                    }
+                    else if (RandSide == 1) //Spawn from right of player
+                    {
+                        newX = players[0].WorldLocation.X + (Game1.curResolutionX / 2) + 45;
+                        newY = players[0].WorldLocation.Y + (Game1.curResolutionY * RandPosition);
+                    }
+                    else if (RandSide == 2) //Spawn from top of player
+                    {
+                        newX = players[0].WorldLocation.X + (Game1.curResolutionX * RandPosition);
+                        newY = players[0].WorldLocation.Y - (Game1.curResolutionY / 2) - 30;
+                    }
+                    else //if (RandSide == 3) //Spawn from bottom of player
+                    {
+                        newX = players[0].WorldLocation.X + (Game1.curResolutionX * RandPosition);
+                        newY = players[0].WorldLocation.Y + (Game1.curResolutionY / 2) + 30;
+                    }
                 }
                 counter++;
             }
@@ -96,7 +100,6 @@ namespace AbstractShooter
                 AEnemySeeker newEnemy = new AEnemySeeker(squareLocation, type, speed);
                 newEnemy.Lives += 3 * (currentDifficulty - 1);
             }
-
         }
     }
 }

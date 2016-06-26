@@ -14,9 +14,9 @@ namespace AbstractShooter
         private int lives = 1; //It is either life of lives
 
         public ACharacter(Texture2D texture, List<Rectangle> frames,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, DrawGroup drawGroup = DrawGroup.Default,
+            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, float layerDepth = DrawGroup.Default,
             Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color tintColor = new Color())
-            : base(texture, frames, updateGroup, drawGroup, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor)
+            : base(texture, frames, ActorUpdateGroup.Characters,updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor)
         {
         }
 
@@ -30,12 +30,9 @@ namespace AbstractShooter
             get { return lives; }
             set { lives = value; }
         }
-        public virtual void Hit(Int32 damage = 1)
+        public virtual void Hit(int damage = 1)
         {
-            while (lives > 0)
-            {
-                lives -= damage;
-            }
+            lives = MathHelper.Max(lives - damage, 0);
         }
 
         //protected override void UpdateActor(GameTime gameTime)

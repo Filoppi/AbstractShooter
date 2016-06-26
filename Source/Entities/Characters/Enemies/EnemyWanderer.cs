@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using AbstractShooter.States;
 
 namespace AbstractShooter
 {
@@ -120,7 +121,7 @@ namespace AbstractShooter
             baseAngle = (float)Math.Atan2(1, 0);
             rotationSpeed = (float)rand.Next(-400, 400) / 1.666f;
 
-            FollowingPlayerN = rand.Next(0, GameManager.GetNOfPlayers());
+            FollowingPlayerN = rand.Next(0, ((Level)StateManager.currentState).GetNOfPlayers());
             
             WorldScale = 1.135f;
             
@@ -164,10 +165,10 @@ namespace AbstractShooter
 
         protected override void UpdateActor(GameTime gameTime)
         {
-            rootComponent.velocity = ObjectAngle * ObjectSpeed;
+            rootComponent.localVelocity = ObjectAngle * ObjectSpeed;
 
             //Rotates the angle
-            baseAngle -= MathHelper.ToRadians(rotationSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale);
+            baseAngle -= MathHelper.ToRadians(rotationSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale);
             spriteComponent.RotateTo(new Vector2((float)Math.Cos(baseAngle), (float)Math.Sin(baseAngle)));
             
             base.UpdateActor(gameTime);

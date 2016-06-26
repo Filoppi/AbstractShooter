@@ -36,7 +36,7 @@ namespace BloomPostprocess
             renderTarget2.Dispose();
         }
 
-        public void ChangeResolution(Int32 X, Int32 Y)
+        public void ChangeResolution(int X, int Y)
         {
             int width = X, height = Y;
             // Create two rendertargets for the bloom processing. These are half the size of the backbuffer, in order to minimize fillrate costs. Reducing

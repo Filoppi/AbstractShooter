@@ -21,7 +21,7 @@ namespace AbstractShooter
             Width = width;
             Height = height;
         }
-        public RectangleF(Int32 x, Int32 y, Int32 width, Int32 height)
+        public RectangleF(int x, int y, int width, int height)
         {
             X = (float)x;
             Y = (float)y;
@@ -30,7 +30,7 @@ namespace AbstractShooter
         }
         public Rectangle GetRectangle()
         {
-            return new Rectangle((Int32)Math.Round(X), (Int32)Math.Round(Y), (Int32)Math.Round(Width), (Int32)Math.Round(Height));
+            return new Rectangle((int)Math.Round(X), (int)Math.Round(Y), (int)Math.Round(Width), (int)Math.Round(Height));
         }
     }
 
@@ -67,11 +67,11 @@ namespace AbstractShooter
         #region Information about Map Squares
         static public int GetSquareByPixelX(int pixelX)
         {
-            return (Int32)(pixelX / Math.Round((float)TileWidth));
+            return (int)(pixelX / Math.Round((float)TileWidth));
         }
         static public int GetSquareByPixelY(int pixelY)
         {
-            return (Int32)(pixelY / Math.Round((float)TileHeight));
+            return (int)(pixelY / Math.Round((float)TileHeight));
         }
         static public Vector2 GetSquareAtPixel(Vector2 pixelLocation)
         {

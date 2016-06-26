@@ -14,12 +14,12 @@ namespace AbstractShooter
     {
         private static GraphicsDeviceManager graphicsDeviceManager;
         //private static RenderTarget2D renderTarget2D;
-        public const Int32 minResolutionX = 1280;
-        public const Int32 minResolutionY = 720;
-        private static Int32 maxResolutionX = minResolutionX;
-        private static Int32 maxResolutionY = minResolutionY;
-        public static Int32 curResolutionX = minResolutionX;
-        public static Int32 curResolutionY = minResolutionY;
+        public const int minResolutionX = 1280;
+        public const int minResolutionY = 720;
+        private static int maxResolutionX = minResolutionX;
+        private static int maxResolutionY = minResolutionY;
+        public static int curResolutionX = minResolutionX;
+        public static int curResolutionY = minResolutionY;
         public static float resolutionScale = 1F; //public get private set
         public static bool shouldExit = false; //public set private get
         public static bool isMaxResolution = false; //public get private set
@@ -36,7 +36,7 @@ namespace AbstractShooter
         public static Bloom bloom; //public get private set
         public static RenderTarget2D renderTarget1, renderTarget2;
 #if DEBUG
-        private static Int32 bloomSettingsIndex = 0; //To remove
+        private static int bloomSettingsIndex = 0; //To remove
 #endif
 
         private static ActionBinding exitAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.Escape, KeyAction.Pressed) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.Back, KeyAction.Pressed) });
@@ -69,13 +69,13 @@ namespace AbstractShooter
 
             if (currentMonitorAspectRatio > expectedAspectRatio)
             {
-                maxResolutionX = (Int32)Math.Round((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height * expectedAspectRatio);
+                maxResolutionX = (int)Math.Round((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height * expectedAspectRatio);
                 maxResolutionY = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height;
             }
             else if (currentMonitorAspectRatio > expectedAspectRatio)
             {
                 maxResolutionX = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width;
-                maxResolutionY = (Int32)Math.Round((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / expectedAspectRatio);
+                maxResolutionY = (int)Math.Round((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / expectedAspectRatio);
             }
             else
             {
@@ -164,24 +164,24 @@ namespace AbstractShooter
             }
             else if (InputManager.currentKeyboardState.IsKeyDown(Keys.T) && InputManager.previousKeyboardState.IsKeyUp(Keys.T))
             {
-                if (GameManager.TimeScale != 2.5F)
-                    GameManager.TimeScale = 2.5F;
+                if (StateManager.currentState.TimeScale != 2.5F)
+                    StateManager.currentState.TimeScale = 2.5F;
                 else
-                    GameManager.TimeScale = 1F;
+                    StateManager.currentState.TimeScale = 1F;
             }
             else if (InputManager.currentKeyboardState.IsKeyDown(Keys.Y) && InputManager.previousKeyboardState.IsKeyUp(Keys.Y))
             {
-                if (GameManager.TimeScale != 0.25F)
-                    GameManager.TimeScale = 0.25F;
+                if (StateManager.currentState.TimeScale != 0.25F)
+                    StateManager.currentState.TimeScale = 0.25F;
                 else
-                    GameManager.TimeScale = 1F;
+                    StateManager.currentState.TimeScale = 1F;
             }
             else if (InputManager.currentKeyboardState.IsKeyDown(Keys.U) && InputManager.previousKeyboardState.IsKeyUp(Keys.U))
             {
-                if (GameManager.TimeScale != 0F)
-                    GameManager.TimeScale = 0F;
+                if (StateManager.currentState.TimeScale != 0F)
+                    StateManager.currentState.TimeScale = 0F;
                 else
-                    GameManager.TimeScale = 1F;
+                    StateManager.currentState.TimeScale = 1F;
             }
             else if (InputManager.currentKeyboardState.IsKeyDown(Keys.H) && InputManager.previousKeyboardState.IsKeyUp(Keys.H))
             {
@@ -249,11 +249,11 @@ namespace AbstractShooter
                 timer.Start();
                 if (isBorderless)
                 {
-                    Window.Position = new Point((Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)), (Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)));
+                    Window.Position = new Point((int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)), (int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)));
                 }
                 else
                 {
-                    Window.Position = new Point((Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)) - 8, (Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)) - 4);
+                    Window.Position = new Point((int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)) - 8, (int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)) - 4);
                 }
             }
 
@@ -266,11 +266,11 @@ namespace AbstractShooter
         {
             if (isBorderless)
             {
-                Window.Position = new Point((Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)), (Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)));
+                Window.Position = new Point((int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)), (int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)));
             }
             else
             {
-                Window.Position = new Point((Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)) - 8, (Int32)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)) - 4);
+                Window.Position = new Point((int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / 2) - ((double)curResolutionX / 2)) - 8, (int)Math.Round(((double)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height / 2) - ((double)curResolutionY / 2)) - 4);
             }
         }
 

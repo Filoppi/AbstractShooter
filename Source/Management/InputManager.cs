@@ -14,7 +14,7 @@ namespace InputManagement
         public readonly bool Mouse;
         public readonly bool[] GamePads;
 
-        public InputMode(bool Keyboard = true, bool Mouse = true, Int32 GamePadsNumber = 1, bool GamePadsNumberIsIndex = false)
+        public InputMode(bool Keyboard = true, bool Mouse = true, int GamePadsNumber = 1, bool GamePadsNumberIsIndex = false)
         {
             this.Keyboard = Keyboard;
             this.Mouse = Mouse;
@@ -25,7 +25,7 @@ namespace InputManagement
             }
             else
             {
-                for (Int32 i = 0; i < Math.Min(GamePadsNumber, GamePad.MaximumGamePadCount); ++i)
+                for (int i = 0; i < Math.Min(GamePadsNumber, GamePad.MaximumGamePadCount); ++i)
                 {
                     GamePads[i] = true;
                 }
@@ -199,8 +199,8 @@ namespace InputManagement
         public static GamePadState[] previousGamePadState = new GamePadState[GamePad.MaximumGamePadCount];
         public static MouseState currentMouseState;
         public static MouseState previousMouseState;
-        private static Int32 numberOfGamePads = 0;
-        public static Int32 NumberOfGamePads { get { return numberOfGamePads; } }
+        private static int numberOfGamePads = 0;
+        public static int NumberOfGamePads { get { return numberOfGamePads; } }
         private static bool isUsingGamePad = false;
         public static bool IsUsingGamePad { get { return isUsingGamePad; } }
         private static List<ActionBindingWithEvent> actionBindingsWithEvent = new List<ActionBindingWithEvent>();
@@ -244,10 +244,11 @@ namespace InputManagement
             previousMouseState = currentMouseState;
             currentMouseState = Mouse.GetState();
 
-            Int32 foundGamePads = 0;
-            previousGamePadState = currentGamePadState;
-            for (Int32 i = 0; i < currentGamePadState.Length; ++i)
+            int foundGamePads = 0;
+            //previousGamePadState = currentGamePadState;
+            for (int i = 0; i < currentGamePadState.Length; ++i)
             {
+                previousGamePadState[i] = currentGamePadState[i];
                 currentGamePadState[i] = GamePad.GetState(i, GamePadDeadZone.Circular);
                 if (currentGamePadState[i].IsConnected)
                 {
@@ -262,13 +263,13 @@ namespace InputManagement
 
             if (isUsingGamePad)
             {
-                if (!HasGamePadStateChanged(0) && (HasKeyboardStateChanged() || HasMouseStateChanged()))
+                if (!HasGamePadStateChanged(0) && (HasKeyboardStateChanged() || HasMouseStateChanged())) //To ignore mouse when res changed???
                 {
                     //Broadcast Using GamePad value Event
                     isUsingGamePad = false;
                 }
             }
-            else if (HasGamePadStateChanged(0) && !HasKeyboardStateChanged() && !HasMouseStateChanged())
+            else if (HasGamePadStateChanged(0) && !HasKeyboardStateChanged() && !HasMouseStateChanged()) //To ignore mouse when res changed???
             {
                 //Broadcast Using GamePad value Event
                 isUsingGamePad = true;
@@ -299,15 +300,15 @@ namespace InputManagement
         {
             return currentKeyboardState.IsKeyUp(key) && previousKeyboardState.IsKeyDown(key);
         }
-        public static bool WasGamePadButtonToggled(Buttons button, Int32 playerIndex)
+        public static bool WasGamePadButtonToggled(Buttons button, int playerIndex)
         {
             return currentGamePadState[playerIndex].IsButtonDown(button) != previousGamePadState[playerIndex].IsButtonDown(button);
         }
-        public static bool WasGamePadButtonPressed(Buttons button, Int32 playerIndex)
+        public static bool WasGamePadButtonPressed(Buttons button, int playerIndex)
         {
             return currentGamePadState[playerIndex].IsButtonDown(button) && previousGamePadState[playerIndex].IsButtonUp(button);
         }
-        public static bool WasGamePadButtonReleased(Buttons button, Int32 playerIndex)
+        public static bool WasGamePadButtonReleased(Buttons button, int playerIndex)
         {
             return currentGamePadState[playerIndex].IsButtonUp(button) && previousGamePadState[playerIndex].IsButtonDown(button);
         }
@@ -406,7 +407,7 @@ namespace InputManagement
             }
             return false;
         }
-        public static float GetGamePadAxisValue(GamePadAxis gamePadAxes, Int32 playerIndex)
+        public static float GetGamePadAxisValue(GamePadAxis gamePadAxes, int playerIndex)
         {
             switch (gamePadAxes)
             {
@@ -446,9 +447,11 @@ namespace InputManagement
         {
             return currentMouseState != previousMouseState;
         }
-        private static bool HasGamePadStateChanged(Int32 playerIndex)
+        private static bool HasGamePadStateChanged(int playerIndex)
         {
-            return currentGamePadState[playerIndex].PacketNumber != previousGamePadState[playerIndex].PacketNumber;
+            return currentGamePadState[playerIndex].Buttons != previousGamePadState[playerIndex].Buttons
+                || currentGamePadState[playerIndex].ThumbSticks != previousGamePadState[playerIndex].ThumbSticks
+                || currentGamePadState[playerIndex].Triggers != previousGamePadState[playerIndex].Triggers;
         }
 
         public static bool CheckBindings(this ActionBinding actionBinding, InputMode? inputMode = null)
@@ -541,7 +544,7 @@ namespace InputManagement
                     }
                 }
             }
-            for (Int32 i = 0; i < newInputMode.GamePads.Length; ++i)
+            for (int i = 0; i < newInputMode.GamePads.Length; ++i)
             {
                 if (newInputMode.GamePads[i])
                 {
@@ -613,7 +616,7 @@ namespace InputManagement
                         value += mouseButtonsAxisBinding.isNegative ? -1F : 1F;
                 }
             }
-            for (Int32 i = 0; i < newInputMode.GamePads.Length; ++i)
+            for (int i = 0; i < newInputMode.GamePads.Length; ++i)
             {
                 if (newInputMode.GamePads[i])
                 {

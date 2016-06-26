@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 
 namespace AbstractShooter
 {
@@ -32,9 +31,9 @@ namespace AbstractShooter
             }
             owner.WorldScale = (float)(orginalScale + (orginalScale * (((scaleTimeElapsed / scaleTime) * 2) - 1) * scaleScale));
             if (scaleUp)
-                scaleTimeElapsed += gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale;
+                scaleTimeElapsed += gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
             else
-                scaleTimeElapsed -= gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale;
+                scaleTimeElapsed -= gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
         }
     }
 }

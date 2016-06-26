@@ -2,10 +2,38 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace AbstractShooter
 {
     public delegate void DestroyedEventHandler(Component sender);
+
+    //public enum InputModes
+    //{
+    //    KeyboardMouse,
+    //    Keyboard,
+    //    Mouse,
+    //    GamePad,
+    //    KeyboardMouseGamePad1, //Allows the use of everything together
+    //    KeyboardMouseGamePads, //Allows the use of everything together for Multiplayer
+    //    None
+    //};
+
+    public static class DrawGroup
+    {
+        public const float FarBackground = 0.05F;
+        public const float Background = 0.1F;
+        public const float Particles = 0.15F;
+        public const float PassiveObjects = 0.2F;
+        public const float Default = 0.25F;
+        public const float Powerups = 0.3F;
+        public const float Mines = 0.35F;
+        public const float Characters = 0.4F;
+        public const float Shots = 0.45F;
+        public const float Players = 0.5F;
+        public const float Foreground = 0.55F;
+        public const float UI = 0.95F;
+    }
 
     public enum ComponentUpdateGroup
     {
@@ -16,38 +44,44 @@ namespace AbstractShooter
         AfterActor
     }
 
+    [Flags]
+    public enum ComponentCollisionGroup
+    {
+        Static,
+        Dynamic,
+        Physic,
+        Character,
+        Weapon,
+        Particle,
+        MAX
+    }
+
     public abstract class Component
     {
         protected AActor owner;
         public AActor Owner { get { return owner; } }
 
         public ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor;
-        public DrawGroup drawGroup = DrawGroup.Default;
-
+        public float layerDepth = DrawGroup.Default;
         public event DestroyedEventHandler Destroyed;
-
         public bool isUpdateEnabled = true;
-
-        protected bool pendingDestroyed = false;
-        public bool PendingDestroyed { get { return pendingDestroyed; } }
+        protected bool pendingDestroy;
+        public bool PendingDestroy { get { return pendingDestroy; } }
 
         public Component(AActor owner)
         {
             InternalSetOwner(owner);
         }
-        public Component(AActor owner, ComponentUpdateGroup updateGroup, DrawGroup drawGroup)
+        public Component(AActor owner, ComponentUpdateGroup updateGroup, float layerDepth)
         {
             InternalSetOwner(owner);
             this.updateGroup = updateGroup;
-            this.drawGroup = drawGroup;
+            this.layerDepth = layerDepth;
         }
 
         protected virtual void BroadcastDestroyed()
         {
-            if (Destroyed != null)
-            {
-                Destroyed(this);
-            }
+            Destroyed?.Invoke(this);
         }
 
         protected bool InternalSetOwner(AActor owner)
@@ -71,14 +105,19 @@ namespace AbstractShooter
         }
         protected virtual bool InternalDestroy()
         {
-            pendingDestroyed = true;
-            if (owner != null)
+            if (!pendingDestroy)
             {
-                owner.RemoveComponent(this);
-                BroadcastDestroyed();
-                return true;
+                pendingDestroy = true;
+                if (owner != null)
+                {
+                    BroadcastDestroyed();
+                    owner.RemoveComponent(this);
+                    owner = null;
+                    return true;
+                }
+                return true; //If there is no owner, it was already going to be destroyed
             }
-            return true; //If there is no owner, was already going to be destroyed
+            return false;
         }
         public void Update(GameTime gameTime, ComponentUpdateGroup updateGroup)
         {
@@ -115,6 +154,11 @@ namespace AbstractShooter
             }
         }
 
+        //To read only
+        public ComponentCollisionGroup CollisionGroups = ComponentCollisionGroup.Character | ComponentCollisionGroup.Dynamic;
+        public List<AActor> overlappingActors = new List<AActor>();
+        public List<SceneComponent> overlappingComponents = new List<SceneComponent>();
+
         /// <summary>
         /// Only works if there are no external strong references to this object
         /// </summary>
@@ -126,53 +170,78 @@ namespace AbstractShooter
         {
             return InternalDestroy(false);
         }
-        private bool InternalDestroy(bool allDescendants = false) //To improve
+        private bool InternalDestroy(bool allDescendants = false)
         {
-            pendingDestroyed = true;
-            if (owner != null && owner.RootComponent == this) //If it is root component
+            if (!pendingDestroy)
             {
-                owner.RemoveRootComponent();
-            }
-            else if (parent != null)
-            {
-                parent.RemoveChild(this);
-            }
-            if (allDescendants)
-            {
-                foreach (SceneComponent sceneComponent in children.ToList())
+                pendingDestroy = true;
+                BroadcastDestroyed();
+
+                StateManager.currentState.RemoveSceneComponent(this);
+
+                if (owner != null && owner.RootComponent == this) //If it is root component
                 {
-                    sceneComponent.InternalDestroy(allDescendants);
+                    owner.Destroy();
+                    //owner.RemoveRootComponent();
+
+                    foreach (SceneComponent sceneComponent in children.ToList())
+                    {
+                        sceneComponent.InternalDestroy(true);
+                    }
+                    return true;
+                }
+                if (parent != null)
+                {
+                    parent.RemoveChild(this);
+
+                    if (allDescendants)
+                    {
+                        foreach (SceneComponent sceneComponent in children.ToList())
+                        {
+                            sceneComponent.InternalDestroy(allDescendants);
+                        }
+                    }
+                    else
+                    {
+                        foreach (SceneComponent sceneComponent in children)
+                        {
+                            sceneComponent.AttachToSceneComponent(parent, true);
+                        }
+                    }
+
+                    return true;
                 }
             }
-            else
-            {
-                foreach (SceneComponent sceneComponent in children)
-                {
-                    sceneComponent.AttachToSceneComponent(parent, true);
-                }
-            }
-            BroadcastDestroyed();
-            return true;
+            return false;
         }
 
-        public Vector2 relativeLocation = Vector2.Zero; //Relative to partent, then relative to owner; if owner is null, then it is WorldLocation
-        public float relativeRotation = 0; //Clockwise
-        public float relativeScale = 1.0f;
+        protected Vector2 worldLocation = Vector2.Zero; //Relative to world
+        protected Vector2 relativeLocation = Vector2.Zero; //Relative to partents until the root. for root components it is equal to worldLocation
+        protected float worldRotation = 0F; //Clockwise //Final rotation you see on the screen
+        protected float localRotation = 0F; //Clockwise //Relative to partents until the root. for root components it is equal to worldRotation
+        //protected float drawRotation = 0F; //Clockwise //Does not affect children, only rendering
+        public float worldScale = 1F;
+        public float relativeScale = 1F;
+        //protected float drawScale = 1F; //Does not affect children, only rendering
         protected float mass = 0F;
-        public Vector2 velocity = Vector2.Zero;
+        public Vector2 localVelocity = Vector2.Zero;
         protected Vector2 acceleration = Vector2.Zero;
-        protected float maxSpeed = -1;
+        protected float maxLocalSpeed = -1F;
+        protected float collisionRadiusMultiplier = 1F;
+        public bool Collidable = true; //To rename
         public bool isVisible = true;
 
-        public SceneComponent(AActor owner, SceneComponent parentSceneComponent = null, ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, DrawGroup drawGroup = DrawGroup.Default,
-            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1) : base(owner, updateGroup, drawGroup)
+        public SceneComponent(AActor owner, SceneComponent parentSceneComponent = null, ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, float layerDepth = DrawGroup.Default,
+            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1) : base(owner, updateGroup, layerDepth)
         {
+            StateManager.currentState.AddSceneComponent(this);
+
             if (parentSceneComponent != null)
             {
                 AttachToSceneComponent(parentSceneComponent);
             }
             this.acceleration = acceleration;
-            this.maxSpeed = maxSpeed;
+            this.maxLocalSpeed = maxSpeed;
 
             this.relativeScale = relativeScale;
             if (isLocationWorld)
@@ -181,7 +250,7 @@ namespace AbstractShooter
             }
             else
             {
-                relativeLocation = location;
+                RelativeLocation = location;
             }
         }
 
@@ -196,7 +265,7 @@ namespace AbstractShooter
         {
             children.Remove(parent);
         }
-        public Int32 GetAllDescendantsNum(Int32 count = 0)
+        public int GetAllDescendantsNum(int count = 0)
         {
             foreach (SceneComponent child in children)
             {
@@ -301,6 +370,7 @@ namespace AbstractShooter
 
         public float GetTotalMass(float mass = 0)
         {
+            //To multiply by scale???
             foreach (SceneComponent child in children)
             {
                 mass = child.GetTotalMass(mass);
@@ -318,51 +388,206 @@ namespace AbstractShooter
             {
                 massCenter = child.GetMassCenters(massCenter);
             }
-            massCenter += this.WorldLocation;
+            massCenter += WorldLocation;
             return massCenter;
         }
 
-        public Vector2 WorldLocation
+        private void UpdateWorldLocation()
+        {
+            if (parent != null)
+            {
+                worldLocation = parent.worldLocation + (relativeLocation.Rotate(parent.worldRotation) * parent.worldScale);
+            }
+            else
+            {
+                worldLocation = relativeLocation;
+            }
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfLocation();
+            }
+        }
+        private void UpdateRelativeLocation()
+        {
+            if (this is ParticleComponent)
+            {
+                float asd = 5;
+            }
+            if (parent != null)
+            {
+                relativeLocation = ((worldLocation - parent.worldLocation) / parent.worldScale).Rotate(-parent.worldRotation);
+            }
+            else
+            {
+                relativeLocation = worldLocation;
+            }
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfLocation();
+            }
+        }
+        private void UpdateAllDescendantsAndSelfLocation()
+        {
+            worldLocation = parent.worldLocation + (relativeLocation.Rotate(parent.worldRotation) * parent.worldScale);
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfLocation();
+            }
+        }
+        public void AddLocalOffset(Vector2 offset)
+        {
+            RelativeLocation += offset.Rotate(localRotation);
+        }
+        public Vector2 RelativeLocation
         {
             set
             {
                 relativeLocation = value;
+                UpdateWorldLocation();
             }
             get
             {
                 return relativeLocation;
             }
         }
-        //private Vector2 GetWorldLocation(Vector2 location = default(Vector2))
-        //{
-        //    if (parent == null)
-        //    {
-        //        location += Vector2.Transform(relativeLocation, Matrix.CreateRotationX(relativeRotation));
-        //    }
-        //    else
-        //    {
-        //        location += Vector2.Transform(relativeLocation, Matrix.CreateRotationX(relativeRotation));
-        //        location = parent.GetWorldLocation(location);
-        //    }
-        //    return location;
-        //}
-
-        public float WorldRotation //Unimplemented
+        public Vector2 WorldLocation
         {
             set
             {
-                relativeRotation = value;
+                worldLocation = value;
+                UpdateRelativeLocation();
             }
             get
             {
-                return relativeRotation;
+                return worldLocation;
             }
         }
-        public float WorldScale //Unimplemented
+
+        private void UpdateWorldRotation()
+        {
+            if (parent != null)
+            {
+                worldRotation = parent.worldRotation + localRotation;
+            }
+            else
+            {
+                worldRotation = localRotation;
+            }
+            worldRotation %= MathHelper.TwoPi;
+
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfRotation();
+            }
+        }
+        private void UpdateLocalRotation()
+        {
+            if (parent != null)
+            {
+                localRotation = worldRotation - parent.worldRotation;
+            }
+            else
+            {
+                localRotation = worldRotation;
+            }
+            localRotation %= MathHelper.TwoPi;
+
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfRotation();
+            }
+        }
+        private void UpdateAllDescendantsAndSelfRotation()
+        {
+            worldRotation = (parent.worldRotation + localRotation) % MathHelper.TwoPi;
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfRotation();
+            }
+        }
+        public float LocalRotation
+        {
+            set
+            {
+                localRotation = value % MathHelper.TwoPi;
+                UpdateWorldRotation();
+            }
+            get
+            {
+                return localRotation;
+            }
+        }
+        public float WorldRotation
+        {
+            set
+            {
+                worldRotation = value % MathHelper.TwoPi;
+                UpdateLocalRotation();
+            }
+            get
+            {
+                return worldRotation;
+            }
+        }
+        
+        private void UpdateWorldScale()
+        {
+            if (parent != null)
+            {
+                worldScale = parent.worldScale * relativeScale;
+            }
+            else
+            {
+                worldScale = relativeScale;
+            }
+
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfScale();
+            }
+        }
+        private void UpdateRelativeScale()
+        {
+            if (parent != null)
+            {
+                relativeScale = worldScale / parent.worldScale;
+            }
+            else
+            {
+                relativeScale = worldScale;
+            }
+
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfScale();
+            }
+        }
+        private void UpdateAllDescendantsAndSelfScale()
+        {
+            worldScale = parent.worldScale * relativeScale;
+            foreach (SceneComponent child in children)
+            {
+                child.UpdateAllDescendantsAndSelfRotation();
+            }
+        }
+        public float WorldScale
+        {
+            set
+            {
+                worldScale = value;
+                UpdateRelativeScale();
+            }
+            get
+            {
+                return worldScale;
+            }
+        }
+        public float RelativeScale
         {
             set
             {
                 relativeScale = value;
+                UpdateWorldScale();
             }
             get
             {
@@ -370,7 +595,45 @@ namespace AbstractShooter
             }
         }
 
-        public void UpdateDescendantsAndSelf(GameTime gameTime, ComponentUpdateGroup updateGroup) 
+        public void AddWorldOffsetAndRotation(Vector2 offset, float angle)
+        {
+            LocalRotation += angle;
+            WorldLocation += offset;
+        }
+        public void AddRelativeOffsetAndRotation(Vector2 offset, float angle)
+        {
+            LocalRotation += angle;
+            RelativeLocation += offset;
+        }
+        public void AddLocalOffsetAndRotation(Vector2 offset, float angle)
+        {
+            LocalRotation += angle;
+            AddLocalOffset(offset);
+        }
+        public void SetRelativeLocationAndRotation(Vector2 location, float angle)
+        {
+            LocalRotation = angle;
+            RelativeLocation = location;
+        }
+        public void SetWorldLocatioAndRotation(Vector2 location, float angle)
+        {
+            WorldRotation = angle;
+            WorldLocation = location;
+        }
+        public void SetRelativeLocationRotationAndScale(Vector2 location, float angle, float scale)
+        {
+            LocalRotation = angle;
+            RelativeLocation = location;
+            RelativeScale = scale;
+        }
+        public void SetWorldLocatioRotationAndScale(Vector2 location, float angle, float scale)
+        {
+            WorldRotation = angle;
+            WorldLocation = location;
+            WorldScale = scale;
+        }
+
+        public void UpdateDescendantsAndSelf(GameTime gameTime, ComponentUpdateGroup updateGroup)
         {
             foreach (SceneComponent child in children.ToList())
             {
@@ -383,17 +646,24 @@ namespace AbstractShooter
         }
         protected override void UpdateComponent(GameTime gameTime) //Should call base before doing anything else before overriding
         {
-            UpdatePhysics(gameTime);
+            UpdateLocation(gameTime);
         }
-        private void UpdatePhysics(GameTime gameTime)
+        private void UpdateLocation(GameTime gameTime, bool isWorld = true)
         {
-            velocity += acceleration * (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale * 60F;
-            if (maxSpeed >= 0 && velocity.LengthSquared() > maxSpeed * maxSpeed)
+            localVelocity += acceleration * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale * 60F;
+            if (maxLocalSpeed >= 0 && localVelocity.LengthSquared() > maxLocalSpeed * maxLocalSpeed)
             {
-                velocity.Normalize();
-                velocity *= maxSpeed;
+                localVelocity.Normalize();
+                localVelocity *= maxLocalSpeed;
             }
-            WorldLocation += velocity * (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale;
+            if (isWorld)
+            {
+                WorldLocation += localVelocity * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
+            }
+            else
+            {
+                RelativeLocation += localVelocity * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
+            }
         }
 
         public void DrawDescendantsAndSelf()
@@ -408,5 +678,60 @@ namespace AbstractShooter
             }
         }
         protected virtual void Draw() { }
+
+        public virtual Vector2 ScreenCenter { get { return Camera.Transform(WorldLocation); } }
+        public Vector2 ScreenLocation { get { return Camera.Transform(WorldLocation); } }
+        public virtual Vector2 WorldCenter { get { return WorldLocation; } }
+        public virtual bool IsInViewport { get { return false; } }
+        
+        public void RotateTo(Vector2 direction, bool worldRotation = true)
+        {
+            if (worldRotation)
+            {
+                WorldRotation = (float)Math.Atan2(direction.Y, direction.X);
+            }
+            else
+            {
+                LocalRotation = (float)Math.Atan2(direction.Y, direction.X);
+            }
+        }
+        public virtual float CollisionRadius
+        {
+            get
+            {
+                return collisionRadiusMultiplier * WorldScale;
+            }
+        }
+        public float CollisionRadiusMultiplier
+        {
+            get
+            {
+                return collisionRadiusMultiplier;
+            }
+            set
+            {
+                collisionRadiusMultiplier = Math.Max(0, value);
+            }
+        }
+
+        public virtual bool IsBoxColliding(Rectangle otherBox)
+        {
+            if (Collidable)
+            {
+                return false; //To implement
+            }
+            return false;
+        }
+
+        public bool IsCircleColliding(Vector2 otherCenter, float otherRadius)
+        {
+            if (Collidable)
+            {
+                if (Vector2.Distance(WorldCenter, otherCenter) < CollisionRadius + otherRadius)
+                    return true;
+                return false;
+            }
+            return false;
+        }
     }
 }

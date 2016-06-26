@@ -12,12 +12,12 @@ namespace AbstractShooter.States
 
         public override void DrawMenu()
         {
-            if (GameManager.HiScore != 0)
+            if (GameInstance.HiScore != 0)
             {
-                string stringToDraw = "Hiscore: " + GameManager.HiScore.ToString();
+                string stringToDraw = "Hiscore: " + GameInstance.HiScore.ToString();
                 float fontScale = 0.94F;
-                Vector2 StringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * fontScale;
-                Game1.spriteBatch.DrawString(Game1.defaultFont, stringToDraw, new Vector2((Game1.curResolutionX / 2.0f) - ((StringSize.X / 2F) * Game1.resolutionScale), 5 * Game1.resolutionScale), Color.Fuchsia, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * fontScale, SpriteEffects.None, 0);
+                Vector2 stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * fontScale;
+                Game1.spriteBatch.DrawString(Game1.defaultFont, stringToDraw, new Vector2((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.resolutionScale), 5 * Game1.resolutionScale), Color.Fuchsia, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * fontScale, SpriteEffects.None, 0);
             }
         }
     }
@@ -185,10 +185,10 @@ namespace AbstractShooter.States
                 0.05556F, //0.08125F;
                 2.5F); //0.82F;
 
-            titleScreen = Game1.Get.Content.Load<Texture2D>(@"Textures\TitleScreen");
+            background = Game1.Get.Content.Load<Texture2D>(@"Textures\TitleScreen");
 
-            if (GameManager.Score > GameManager.HiScore)
-                GameManager.HiScore = GameManager.Score;
+            if (GameInstance.Score > GameInstance.HiScore)
+                GameInstance.HiScore = GameInstance.Score;
         }
     }
 }

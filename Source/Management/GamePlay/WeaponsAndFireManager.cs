@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
+using AbstractShooter.States;
 
 namespace AbstractShooter
 {
@@ -31,7 +32,7 @@ namespace AbstractShooter
         static private float weaponTimeDefault = 15.0f;
         static private float tripleWeaponSplitAngle = 15;
         static private float quintupleWeaponSplitAngle = 15;
-        static private Int32 ultraWeaponProjectilesNumber = 8;
+        static private int ultraWeaponProjectilesNumber = 8;
         static private float ultraWeaponSplitAngle = 360F / (float)ultraWeaponProjectilesNumber;
         static private float ultraWeaponCurrentAngle = 0;
         static public int minesNumber = 3;
@@ -93,6 +94,7 @@ namespace AbstractShooter
                 new List<Rectangle> { shotRectangle },
                 90F, //To invert with 4000??
                 0,
+                ActorUpdateGroup.Weapons,
                 ComponentUpdateGroup.AfterActor, DrawGroup.Shots,
                 location,
                 true,
@@ -102,10 +104,10 @@ namespace AbstractShooter
                 GetShotColor(),
                 finalColor);
 
-            shot.RootComponent.velocity = velocity;
-            shot.SpriteComponent.relativeScale = 0.9f;
-            shot.SpriteComponent.CollisionRadiusMultiplier = 0.5F;
-            shot.SpriteComponent.RotateTo(direction);
+            shot.RootComponent.localVelocity = velocity;
+            shot.RootComponent.relativeScale = 0.9f;
+            shot.RootComponent.CollisionRadiusMultiplier = 0.5F;
+            shot.RootComponent.RotateTo(direction);
         }
         private static void AddMine(Vector2 location, Vector2 velocity)
         {
@@ -120,6 +122,7 @@ namespace AbstractShooter
             AMine mine = new AMine(
                 StateManager.currentState.spriteSheet,
                 new List<Rectangle> { mineRectangle, mineRectangle2 },
+                ActorUpdateGroup.Weapons,
                 ComponentUpdateGroup.AfterActor, DrawGroup.Mines,
                 location,
                 true,
@@ -128,11 +131,11 @@ namespace AbstractShooter
                 920);
             //Set lifeSpan at 2000
 
-            mine.RootComponent.velocity = velocity * 0.5F;
+            mine.RootComponent.localVelocity = velocity * 0.5F;
             mine.SpriteComponent.GenerateDefaultAnimation(0.4635F, true);
             mine.SpriteComponent.loop = true;
 
-            mine.SpriteComponent.CollisionRadiusMultiplier = 1.6F; //To check if right
+            mine.RootComponent.CollisionRadiusMultiplier = 1.6F; //To check if right
         }
         private static void AddSmog(Vector2 location, Vector2 direction)
         {
@@ -143,6 +146,7 @@ namespace AbstractShooter
                     new Rectangle(smogRectangle.X + smogRectangle.Width * 2, smogRectangle.Y, smogRectangle.Width, smogRectangle.Height) },
                 108,
                 0,
+                ActorUpdateGroup.PassiveObjects,
                 ComponentUpdateGroup.AfterActor, DrawGroup.Particles,
                 location,
                 true,
@@ -152,7 +156,7 @@ namespace AbstractShooter
                 Color.White,
                 Color.Black);
             
-            smog.SpriteComponent.RotateTo(direction);
+            smog.RootComponent.RotateTo(direction);
         }
         #endregion
 
@@ -179,7 +183,7 @@ namespace AbstractShooter
                     {
                         float baseAngle = (float)Math.Atan2(direction.Y, direction.X);
                         float offset = MathHelper.ToRadians(tripleWeaponSplitAngle);
-                        for (Int32 i = -1; i <= 1; ++i)
+                        for (int i = -1; i <= 1; ++i)
                         {
                             Vector2 newDirection = new Vector2((float)Math.Cos(baseAngle + (offset * i)), (float)Math.Sin(baseAngle + (offset * i)));
                             AddShot(location, newDirection, (newDirection * WeaponSpeed) + baseVelocity);
@@ -190,7 +194,7 @@ namespace AbstractShooter
                     {
                         float baseAngle = (float)Math.Atan2(direction.Y, direction.X);
                         float offset = MathHelper.ToRadians(quintupleWeaponSplitAngle);
-                        for (Int32 i = -2; i <= 2; ++i)
+                        for (int i = -2; i <= 2; ++i)
                         {
                             Vector2 newDirection = new Vector2((float)Math.Cos(baseAngle + (offset * i)), (float)Math.Sin(baseAngle + (offset * i)));
                             AddShot(location, newDirection, (newDirection * WeaponSpeed) + baseVelocity);
@@ -201,7 +205,7 @@ namespace AbstractShooter
                     {
                         ultraWeaponCurrentAngle += 0.16F;
                         float offset = MathHelper.ToRadians(ultraWeaponSplitAngle);
-                        for (Int32 i = 0; i < ultraWeaponProjectilesNumber; ++i)
+                        for (int i = 0; i < ultraWeaponProjectilesNumber; ++i)
                         {
                             Vector2 newDirection = new Vector2((float)Math.Cos(ultraWeaponCurrentAngle + (offset * i)), (float)Math.Sin(ultraWeaponCurrentAngle + (offset * i)));
                             AddShot(location, newDirection, (newDirection * WeaponSpeed) + baseVelocity);
@@ -230,8 +234,8 @@ namespace AbstractShooter
             foreach (AMine mine in mines)
             {
                 SoundsManager.PlayExplosion();
-                EffectsManager.AddMineExplosion(mine.SpriteComponent.WorldCenter);
-                checkMineSplashDamage(mine.SpriteComponent.WorldCenter);
+                EffectsManager.AddMineExplosion(mine.RootComponent.WorldCenter);
+                checkMineSplashDamage(mine.RootComponent.WorldCenter);
                 mine.Destroy();
             }
         }
@@ -254,15 +258,27 @@ namespace AbstractShooter
         {
             APowerUp newPowerup = new APowerUp(
                 StateManager.currentState.spriteSheet,
-                new List<Rectangle> { powerupRectangle,
-                    new Rectangle(powerupRectangle.X + powerupRectangle.Width, powerupRectangle.Y, powerupRectangle.Width, powerupRectangle.Height),
-                    new Rectangle(powerupRectangle.X + (powerupRectangle.Width * 2), powerupRectangle.Y, powerupRectangle.Width, powerupRectangle.Height),
-                    new Rectangle(powerupRectangle.X + (powerupRectangle.Width * 3), powerupRectangle.Y, powerupRectangle.Width, powerupRectangle.Height) },
+                new List<Rectangle>
+                {
+                    powerupRectangle,
+                    new Rectangle(powerupRectangle.X + powerupRectangle.Width, powerupRectangle.Y,
+                        powerupRectangle.Width, powerupRectangle.Height),
+                    new Rectangle(powerupRectangle.X + (powerupRectangle.Width*2), powerupRectangle.Y,
+                        powerupRectangle.Width, powerupRectangle.Height),
+                    new Rectangle(powerupRectangle.X + (powerupRectangle.Width*3), powerupRectangle.Y,
+                        powerupRectangle.Width, powerupRectangle.Height)
+                },
                 560F,
                 165F,
+                ActorUpdateGroup.Weapons,
                 ComponentUpdateGroup.AfterActor, DrawGroup.Characters,
                 Position,
-                true);
+                true,
+                1F,
+                default(Vector2),
+                -1F,
+                Color.White,
+                Color.White);
 
             //TORefactor
             WeaponType type;
@@ -300,20 +316,23 @@ namespace AbstractShooter
         {
             foreach (AEnemy enemy in StateManager.currentState.GetAllActorsOfClass<AEnemy>())
             {
-                if (shot.SpriteComponent.IsCircleColliding(enemy.SpriteComponent.WorldCenter, enemy.SpriteComponent.CollisionRadius))
+                if (shot.SpriteComponent.IsCircleColliding(enemy.RootComponent.WorldCenter,
+                    enemy.RootComponent.CollisionRadius))
                 {
                     shot.Destroy();
                     enemy.Hit();
 
-                    EffectsManager.AddFlakesEffect(enemy.SpriteComponent.WorldCenter, enemy.RootComponent.velocity / 30, GetShotColor());
+                    EffectsManager.AddFlakesEffect(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity/30,
+                        GetShotColor());
 
                     //if dead
                     if (enemy.Lives <= 0)
                     {
                         SoundsManager.PlayKill();
-                        GameManager.addScore(10);
-                        GameManager.growMultiplier();
-                        EffectsManager.AddExplosion(enemy.SpriteComponent.WorldCenter, enemy.RootComponent.velocity / 30, enemy.GetColor());
+                        ((Level) StateManager.currentState).addScore(10);
+                        ((Level) StateManager.currentState).growMultiplier();
+                        EffectsManager.AddExplosion(enemy.RootComponent.WorldCenter,
+                            enemy.RootComponent.localVelocity/30, enemy.GetColor());
 
                         //Spawn PowerUp
                         if (rand.Next(0, 7) == 3)
@@ -340,12 +359,12 @@ namespace AbstractShooter
             {
                 foreach (AEnemy enemy in StateManager.currentState.GetAllActorsOfClass<AEnemy>())
                 {
-                    if ((enemy is AEnemySeeker || enemy is AEnemyWanderer))
+                    if (enemy is AEnemySeeker || enemy is AEnemyWanderer)
                     {
-                        if (mine.IsCircleColliding(enemy.SpriteComponent.WorldCenter, enemy.SpriteComponent.CollisionRadius))
+                        if (mine.IsCircleColliding(enemy.RootComponent.WorldCenter, enemy.RootComponent.CollisionRadius))
                         {
                             mine.Destroy();
-                            EffectsManager.AddMineExplosion(enemy.SpriteComponent.WorldCenter);
+                            EffectsManager.AddMineExplosion(enemy.RootComponent.WorldCenter);
                             SoundsManager.PlayExplosion();
                             return true;
                         }
@@ -363,7 +382,7 @@ namespace AbstractShooter
 
             foreach (AEnemy enemy in StateManager.currentState.GetAllActorsOfClass<AEnemy>())
             {
-                if (enemy.SpriteComponent.IsInViewport)
+                if (enemy.RootComponent.IsInViewport)
                 {
                     if (enemy.SpriteComponent.IsCircleColliding(location, mineSplashRadius))
                     {
@@ -373,15 +392,15 @@ namespace AbstractShooter
                             SoundsManager.PlayHit();
                         }
 
-                        if (GameManager.CurrentDifficulty <= 1)
+                        if (((Level)StateManager.currentState).CurrentDifficulty <= 1)
                         {
                             enemy.Hit(6);
                         }
-                        else if (GameManager.CurrentDifficulty == 2)
+                        else if (((Level)StateManager.currentState).CurrentDifficulty == 2)
                         {
                             enemy.Hit(12);
                         }
-                        else if (GameManager.CurrentDifficulty >= 3)
+                        else if (((Level)StateManager.currentState).CurrentDifficulty >= 3)
                         {
                             enemy.Hit(18);
                         }
@@ -395,9 +414,9 @@ namespace AbstractShooter
                                 SoundsManager.PlayKill();
                             }
                             enemy.Destroy();
-                            GameManager.addScore(10);
-                            GameManager.growMultiplier();
-                            EffectsManager.AddExplosion(enemy.SpriteComponent.WorldCenter, enemy.RootComponent.velocity / 30, enemy.GetColor());
+                            ((Level)StateManager.currentState).addScore(10);
+                            ((Level)StateManager.currentState).growMultiplier();
+                            EffectsManager.AddExplosion(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity / 30, enemy.GetColor());
 
                             //Spawn PowerUp
                             if (rand.Next(0, 12) == 3)
@@ -409,10 +428,10 @@ namespace AbstractShooter
         }
         private static void checkShotWallImpacts(AProjectile shot)
         {
-            if (TileMap.IsWallTile(TileMap.GetSquareAtPixel(shot.SpriteComponent.WorldCenter)))
+            if (TileMap.IsWallTile(TileMap.GetSquareAtPixel(shot.RootComponent.WorldCenter)))
             {
                 shot.Destroy();
-                EffectsManager.AddSparksEffect(shot.SpriteComponent.WorldCenter, shot.SpriteComponent.velocity);
+                EffectsManager.AddSparksEffect(shot.RootComponent.WorldCenter, shot.RootComponent.localVelocity);
             }
         }
         private static void checkPowerupPickups(GameTime gameTime)
@@ -424,7 +443,7 @@ namespace AbstractShooter
                 foreach (APowerUp powerUp in powerUps)
                 {
                     //PowerUps[x].Update(gameTime);
-                    if (play.SpriteComponent.IsCircleColliding(powerUp.SpriteComponent.WorldCenter, powerUp.SpriteComponent.CollisionRadius))
+                    if (play.SpriteComponent.IsCircleColliding(powerUp.RootComponent.WorldCenter, powerUp.RootComponent.CollisionRadius))
                     {
                         switch (powerUp.SpriteComponent.CurrentFrame)
                         {
@@ -469,7 +488,7 @@ namespace AbstractShooter
         
         static public void Update(GameTime gameTime)
         {
-            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale;
+            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
             shotTimer += elapsed;
             smogTimer += elapsed;
             mineTimer += elapsed;
@@ -484,7 +503,7 @@ namespace AbstractShooter
             foreach (AMine mine in mines)
             {
                 if (checkMineCollisions(mine.SpriteComponent))
-                    checkMineSplashDamage(mine.SpriteComponent.WorldLocation);
+                    checkMineSplashDamage(mine.RootComponent.WorldLocation);
             }
 
             checkPowerupPickups(gameTime);

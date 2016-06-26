@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 
@@ -14,35 +13,20 @@ namespace AbstractShooter
         protected List<Rectangle> frames = new List<Rectangle>();
 
         private Color tintColor = Color.White;
-
-        private float localRotation = 0.0f;
         
-        protected Int32 currentFrame = 0;
+        protected int currentFrame = 0;
 
-        public virtual Int32 CurrentFrame
+        public virtual int CurrentFrame
         {
             get { return currentFrame; }
             set { currentFrame = (int)MathHelper.Clamp(value, 0, frames.Count - 1); }
         }
 
-        public bool Collidable = true;
-        private float collisionRadiusMultiplier = 1F;
-        public float CollisionRadius
+        public override float CollisionRadius
         {
             get
             {
                 return collisionRadiusMultiplier * WorldScale * FrameWidth / 2F;
-            }
-        }
-        public float CollisionRadiusMultiplier
-        {
-            get
-            {
-                return collisionRadiusMultiplier;
-            }
-            set
-            {
-                collisionRadiusMultiplier = Math.Max(0, value);
             }
         }
         public int BoundingXPadding = 0;
@@ -51,9 +35,9 @@ namespace AbstractShooter
         public SpriteComponent(AActor owner,
             Texture2D texture, List<Rectangle> frames,
             SceneComponent parentSceneComponent = null,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, DrawGroup drawGroup = DrawGroup.Default,
+            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, float layerDepth = DrawGroup.Default,
             Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color? tintColor = null) :
-            base(owner, parentSceneComponent, updateGroup, drawGroup, location, isLocationWorld, relativeScale, acceleration, maxSpeed)
+            base(owner, parentSceneComponent, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed)
         {
             Color foundTintColor;
             if (tintColor.HasValue && tintColor.Value != default(Color))
@@ -85,23 +69,9 @@ namespace AbstractShooter
             set { tintColor = value; }
         }
 
-        public float LocalRotation
-        {
-            get { return localRotation; }
-            set { localRotation = value % MathHelper.TwoPi; }
-        }
-
         public virtual Rectangle CurrentFrameRectangle
         {
             get { return frames[currentFrame]; }
-        }
-
-        public Vector2 ScreenLocation
-        {
-            get
-            {
-                return Camera.Transform(WorldLocation);
-            }
         }
 
         public Rectangle WorldRectangle
@@ -126,19 +96,19 @@ namespace AbstractShooter
             get { return new Vector2(FrameWidth / 2, FrameHeight / 2); }
         }
 
-        public Vector2 WorldCenter
+        public override Vector2 WorldCenter
         {
             get { return WorldLocation + RelativeCenter; }
         }
 
-        public Vector2 ScreenCenter
+        public override Vector2 ScreenCenter
         {
             get
             {
                 return Camera.Transform(WorldLocation + RelativeCenter);
             }
         }
-        public bool IsInViewport
+        public override bool IsInViewport
         {
             get
             {
@@ -158,43 +128,20 @@ namespace AbstractShooter
             }
         }
 
-        public bool IsBoxColliding(Rectangle OtherBox)
+        public override bool IsBoxColliding(Rectangle OtherBox)
         {
             if (Collidable)
             {
                 return BoundingBoxRect.Intersects(OtherBox);
             }
-            else
-            {
-                return false;
-            }
-        }
-
-        public bool IsCircleColliding(Vector2 otherCenter, float otherRadius)
-        {
-            if (Collidable)
-            {
-                if (Vector2.Distance(WorldCenter, otherCenter) < (CollisionRadius + otherRadius))
-                    return true;
-                else
-                    return false;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        public void RotateTo(Vector2 direction)
-        {
-            localRotation = (float)Math.Atan2(direction.Y, direction.X);
+            return false;
         }
 
         protected override void UpdateComponent(GameTime gameTime)
         {
             base.UpdateComponent(gameTime);
 
-            double elapsed = gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale;
+            double elapsed = gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
             Animate(elapsed);
         }
 
@@ -209,11 +156,11 @@ namespace AbstractShooter
                     ScreenCenter,
                     CurrentFrameRectangle,
                     tintColor,
-                    localRotation,
+                    WorldRotation,
                     RelativeCenter,
                     WorldScale * Game1.resolutionScale,
                     SpriteEffects.None,
-                    0);
+                    layerDepth);
             }
         }
     }
@@ -222,9 +169,9 @@ namespace AbstractShooter
     {
         public struct Animation
         {
-            public List<Int32> framesIndex;
+            public List<int> framesIndex;
             public float frameTime;
-            public Animation(ref List<Int32> newFramesIndex, float newframeTime = 0.1f)
+            public Animation(ref List<int> newFramesIndex, float newframeTime = 0.1f)
             {
                 frameTime = newframeTime;
                 framesIndex = newFramesIndex;
@@ -234,30 +181,30 @@ namespace AbstractShooter
         public AnimatedSpriteComponent(AActor owner,
             Texture2D texture, List<Rectangle> frames,
             SceneComponent parentSceneComponent = null,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, DrawGroup drawGroup = DrawGroup.Default,
+            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, float layerDepth = DrawGroup.Default,
             Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color tintColor = new Color()) :
-            base(owner, texture, frames, parentSceneComponent, updateGroup, drawGroup, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor)
+            base(owner, texture, frames, parentSceneComponent, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor)
         { }
 
         private List<Animation> animations = new List<Animation>();
 
-        private Int32 currentAnimation = 0;
-        private Int32 currentAnimationFrameIndex = 0;
+        private int currentAnimation = 0;
+        private int currentAnimationFrameIndex = 0;
         private double timeForCurrentFrame = 0.0f;
 
         public bool Animated = true;
         //public bool AnimateWhenSteady = true;
         public bool loop = true; //Re-Animate: Means that it should keep animating after the first cycle
 
-        //public void SetFrameTime(Int32 animationIndex, float value)
+        //public void SetFrameTime(int animationIndex, float value)
         //{
         //   animations[animationIndex].frameTime = MathHelper.Max(0, value);
         //}
 
         public void GenerateDefaultAnimation(float newAnimationTime = 0.1F, bool setAsCurrent = false)
         {
-            List<Int32> newAnimation = new List<Int32>();
-            for (Int32 i = 0; i < frames.Count; ++i)
+            List<int> newAnimation = new List<int>();
+            for (int i = 0; i < frames.Count; ++i)
             {
                 newAnimation.Add(i);
             }
@@ -267,11 +214,11 @@ namespace AbstractShooter
                 currentAnimation = animations.Count - 1;
             }
         }
-        public void AddAnimation(ref List<Int32> newFramesIndex, float newAnimationTime)
+        public void AddAnimation(ref List<int> newFramesIndex, float newAnimationTime)
         {
             animations.Add(new Animation(ref newFramesIndex, newAnimationTime));
         }
-        public void SetAnimation(Int32 index)
+        public void SetAnimation(int index)
         {
             currentAnimation = index;
             currentFrame = 0;
@@ -318,9 +265,9 @@ namespace AbstractShooter
             Texture2D texture, List<Rectangle> frames,
             float remainingDuration, float startFlashingAtRemainingTime,
             SceneComponent parentSceneComponent = null,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, DrawGroup drawGroup = DrawGroup.Default,
+            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, float layerDepth = DrawGroup.Default,
             Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color? initialColor = null, Color finalColor = default(Color)) :
-            base(owner, texture, frames, parentSceneComponent, updateGroup, drawGroup, location, isLocationWorld, relativeScale, acceleration, maxSpeed, initialColor.Value)
+            base(owner, texture, frames, parentSceneComponent, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, initialColor.Value)
         {
             Color foundInitialColor;
             if (initialColor.HasValue && initialColor.Value != default(Color))
@@ -383,7 +330,7 @@ namespace AbstractShooter
                         finalColor,
                         DurationProgress);
                 }
-                remainingDuration -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * GameManager.TimeScale;
+                remainingDuration -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * StateManager.currentState.TimeScale;
 
                 if (remainingDuration < startFlashingAtRemainingTime)
                 {
@@ -403,11 +350,14 @@ namespace AbstractShooter
             Texture2D texture, List<Rectangle> frames,
             float remainingDuration, float startFlashingAtRemainingTime,
             SceneComponent parentSceneComponent = null,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, DrawGroup drawGroup = DrawGroup.Default,
+            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor, float layerDepth = DrawGroup.Particles,
             Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 velocity = new Vector2(), Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color initialColor = new Color(), Color finalColor = new Color()) :
-            base(owner, texture, frames, remainingDuration, startFlashingAtRemainingTime, parentSceneComponent, updateGroup, drawGroup, location, isLocationWorld, relativeScale, acceleration, maxSpeed, initialColor)
+            base(owner, texture, frames, remainingDuration, startFlashingAtRemainingTime, parentSceneComponent, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, initialColor)
         {
-            this.velocity = velocity;
+            //maxLocalSpeed = 5000;
+            //localVelocity = new Vector2(500, 500);
+            //this.acceleration = new Vector2(500, 500);
+            localVelocity = velocity;
         }
     }
 }

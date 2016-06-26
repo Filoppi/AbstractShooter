@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using AbstractShooter.States;
 
 namespace AbstractShooter
 {
@@ -136,7 +137,7 @@ namespace AbstractShooter
             baseAngle = (float)Math.Atan2(1, 0);
             rotationSpeed = (float)rand.Next(-400, 400) / 1.666f;
 
-            FollowingPlayerN = rand.Next(0, GameManager.GetNOfPlayers());
+            FollowingPlayerN = rand.Next(0, ((Level)StateManager.currentState).GetNOfPlayers());
             
             WorldScale = 1.135f;
             
@@ -171,7 +172,7 @@ namespace AbstractShooter
         }
         private new Vector2 determineMoveDirection()
         {
-            return StateManager.currentState.GetAllActorsOfClass<APlayer>()[FollowingPlayerN].SpriteComponent.WorldCenter - spriteComponent.WorldCenter;
+            return StateManager.currentState.GetAllActorsOfClass<APlayer>()[FollowingPlayerN].RootComponent.WorldCenter - rootComponent.WorldCenter;
         }
 
         protected override void UpdateActor(GameTime gameTime)
@@ -183,9 +184,9 @@ namespace AbstractShooter
             if (surroundingPlayer)
             {
                 if (goingUp)
-                    OffSetCurrent = new Vector2(0, OffSetCurrent.Y + (SinusoidalRotation * (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale) * 60F);
+                    OffSetCurrent = new Vector2(0, OffSetCurrent.Y + (SinusoidalRotation * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale) * 60F);
                 else
-                    OffSetCurrent = new Vector2(0, OffSetCurrent.Y - (SinusoidalRotation * (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale) * 60F);
+                    OffSetCurrent = new Vector2(0, OffSetCurrent.Y - (SinusoidalRotation * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale) * 60F);
 
                 if (OffSetCurrent.Y > OffSet.Y)
                 {
@@ -226,10 +227,10 @@ namespace AbstractShooter
                 ObjectAngle.Normalize();
             }
 
-            rootComponent.velocity = ObjectAngle * ObjectSpeed;
+            rootComponent.localVelocity = ObjectAngle * ObjectSpeed;
 
             //Rotates the angle
-            baseAngle -= MathHelper.ToRadians(rotationSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale);
+            baseAngle -= MathHelper.ToRadians(rotationSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale);
             spriteComponent.RotateTo(new Vector2((float)Math.Cos(baseAngle), (float)Math.Sin(baseAngle)));
 
             base.UpdateActor(gameTime);

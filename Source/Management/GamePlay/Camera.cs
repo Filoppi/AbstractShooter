@@ -56,19 +56,19 @@ namespace AbstractShooter
             set { worldRectangle = value; }
         }
 
-        public static Int32 ViewPortWidth
+        public static int ViewPortWidth
         {
-            get { return (Int32)viewPortSize.X; }
+            get { return (int)viewPortSize.X; }
             set { viewPortSize.X = value; }
         }
 
-        public static Int32 ViewPortHeight
+        public static int ViewPortHeight
         {
-            get { return (Int32)viewPortSize.Y; }
+            get { return (int)viewPortSize.Y; }
             set { viewPortSize.Y = value; }
         }
 
-        public static void ChangeResolution(Int32 X, Int32 Y)
+        public static void ChangeResolution(int X, int Y)
         {
             //ViewPortWidth = X;
             //ViewPortHeight = Y;
@@ -81,7 +81,7 @@ namespace AbstractShooter
             get
             {
                 return new Rectangle(
-                    (Int32)Position.X, (Int32)Position.Y,
+                    (int)Position.X, (int)Position.Y,
                     ViewPortWidth, ViewPortHeight);
             }
         }
@@ -104,10 +104,10 @@ namespace AbstractShooter
         public static Rectangle Transform(Rectangle rectangle)
         {
             return new Rectangle(
-                (Int32)Math.Round(((float)rectangle.Left - position.X) * Game1.resolutionScale),
-                (Int32)Math.Round(((float)rectangle.Top - position.Y) * Game1.resolutionScale),
-                (Int32)Math.Round(((float)rectangle.Width * Game1.resolutionScale)),
-                (Int32)Math.Round(((float)rectangle.Height * Game1.resolutionScale)));
+                (int)Math.Round(((float)rectangle.Left - position.X) * Game1.resolutionScale),
+                (int)Math.Round(((float)rectangle.Top - position.Y) * Game1.resolutionScale),
+                (int)Math.Round(((float)rectangle.Width * Game1.resolutionScale)),
+                (int)Math.Round(((float)rectangle.Height * Game1.resolutionScale)));
         }
 
         public static RectangleF Transform(RectangleF rectangle)

@@ -4,10 +4,10 @@ namespace AbstractShooter
 {
     public static class StateManager
     {
-        public static State currentState = null;
-        private static State pauseState = null;
-        private static State nextState = null;
-        private static State prePauseState = null;
+        public static State currentState;
+        private static State pauseState;
+        public static State nextState;
+        private static State prePauseState;
 
         public static void CreateAndSetState<S, P>() where S : State, new() where P : State, new()
         {
@@ -79,24 +79,15 @@ namespace AbstractShooter
                 currentState = nextState;
                 nextState = null;
                 currentState.Initialize();
-                if (pauseState != null)
-                {
-                    pauseState.Initialize();
-                }
+                pauseState?.Initialize();
             }
 
-            if (currentState != null)
-            {
-                currentState.Update(gameTime);
-            }
+            currentState?.Update(gameTime);
         }
 
         public static void Draw()
         {
-            if (currentState != null)
-            {
-                currentState.Draw();
-            }
+            currentState?.Draw();
         }
     }
 }

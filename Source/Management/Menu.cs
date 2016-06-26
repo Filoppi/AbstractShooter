@@ -9,7 +9,7 @@ namespace AbstractShooter
     public class Menu
     {
         public List<MenuEntry> Choices;
-        public Int32 CurrentChoiceIndex = 0;
+        public int CurrentChoiceIndex = 0;
         public Menu Parent = null;
         public Menu Child = null;
         public Color selectedColor = Color.White;
@@ -123,7 +123,7 @@ namespace AbstractShooter
                     Color.White);
             }
 
-            for (Int32 i = 0; i < Choices.Count; ++i)
+            for (int i = 0; i < Choices.Count; ++i)
             {
                 string tempName = Choices[i].SubChoices[Choices[i].CurrentSubChoiceIndex].Name;
                 Color tempColor;
@@ -139,8 +139,8 @@ namespace AbstractShooter
                 {
                     tempColor = Color.Black;
                 }
-                Vector2 StringSize = Game1.smallerFont.MeasureString(tempName) * Game1.defaultFontScale * StringScale;
-                Game1.spriteBatch.DrawString(Game1.smallerFont, tempName, new Vector2((Game1.curResolutionX / 2.0f) - ((StringSize.X / 2F) * Game1.resolutionScale), (StartingYAlpha + (YAlphaBetweenLines * i)) * Game1.curResolutionY), tempColor, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * StringScale, SpriteEffects.None, 0);
+                Vector2 stringSize = Game1.smallerFont.MeasureString(tempName) * Game1.defaultFontScale * StringScale;
+                Game1.spriteBatch.DrawString(Game1.smallerFont, tempName, new Vector2((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.resolutionScale), (StartingYAlpha + (YAlphaBetweenLines * i)) * Game1.curResolutionY), tempColor, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * StringScale, SpriteEffects.None, 0);
             }
 
             DrawMenu();
@@ -152,7 +152,7 @@ namespace AbstractShooter
     public class MenuEntry
     {
         public List<MenuEntryChoice> SubChoices;
-        public Int32 CurrentSubChoiceIndex = 0;
+        public int CurrentSubChoiceIndex = 0;
 
         public MenuEntry(List<MenuEntryChoice> menuSubChoices)
         {

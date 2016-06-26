@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using InputManagement;
+using AbstractShooter.States;
 
 namespace AbstractShooter
 {
@@ -16,6 +17,9 @@ namespace AbstractShooter
         private bool isMineUp = false;
         protected InputMode inputMode = InputModes.KeyboardMouseGamePad1;
         private SpriteComponent transparentBackground; //Addictional sprite that gives a transparent background
+
+        AxisBinding fireAngleX = new AxisBinding(new GamePadAxis[] { GamePadAxis.RightAnalogX }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Up, false), new KeyAxisBinding<Keys>(Keys.Down, true) });
+        AxisBinding fireAngleY = new AxisBinding(new GamePadAxis[] { GamePadAxis.RightAnalogY }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Right, true), new KeyAxisBinding<Keys>(Keys.Left, false) });
 
         public APlayer(Vector2 worldLocation)
             : base(StateManager.currentState.spriteSheet, new List<Rectangle> { new Rectangle(0, 96, 32, 32) }, ComponentUpdateGroup.AfterActor, DrawGroup.Players, worldLocation)
@@ -113,7 +117,7 @@ namespace AbstractShooter
         {
             handleTurbo();
 
-            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale;
+            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
 
             Vector2 moveAngle = Vector2.Zero;
             Vector2 fireAngle = Vector2.Zero;
@@ -132,10 +136,7 @@ namespace AbstractShooter
             }
             else
             {
-                //To move
-                AxisBinding asdL = new AxisBinding(new GamePadAxis[] { GamePadAxis.RightAnalogX }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Up, false), new KeyAxisBinding<Keys>(Keys.Down, true) });
-                AxisBinding asd = new AxisBinding(new GamePadAxis[] { GamePadAxis.RightAnalogY }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Right, true), new KeyAxisBinding<Keys>(Keys.Left, false) });
-                fireAngle = new Vector2(asd.CheckBindings(inputMode), -asd.CheckBindings(inputMode));
+                fireAngle = new Vector2(fireAngleX.CheckBindings(inputMode), -fireAngleY.CheckBindings(inputMode));
             }
 
             if (moveAngle != Vector2.Zero)
@@ -151,7 +152,7 @@ namespace AbstractShooter
             }
             
             spriteComponent.RotateTo(ObjectAngle);
-            rootComponent.velocity = moveAngle * ObjectSpeed;
+            rootComponent.localVelocity = moveAngle * ObjectSpeed;
             
             if (fireAngle != Vector2.Zero)
             {
@@ -159,7 +160,7 @@ namespace AbstractShooter
 
                 if (WeaponsAndFireManager.CanFireWeapon)
                 {
-                    WeaponsAndFireManager.FireWeapon(rootComponent.WorldLocation, fireAngle, rootComponent.velocity);
+                    WeaponsAndFireManager.FireWeapon(rootComponent.WorldLocation, fireAngle, rootComponent.localVelocity);
 
                     //Playing once out of two times
                     if (PlayShootSound)
@@ -178,7 +179,7 @@ namespace AbstractShooter
             {
                 if (WeaponsAndFireManager.CanFireMine)
                 {
-                    WeaponsAndFireManager.FireMine(rootComponent.WorldLocation, ObjectSpeed != ObjectSpeedOriginal ? rootComponent.velocity * 0.85F : Vector2.Zero);
+                    WeaponsAndFireManager.FireMine(rootComponent.WorldLocation, ObjectSpeed != ObjectSpeedOriginal ? rootComponent.localVelocity * 0.85F : Vector2.Zero);
                     SoundsManager.PlayShootMine();
                 }
             }
@@ -194,13 +195,13 @@ namespace AbstractShooter
         {
             foreach (AEnemy enemy in StateManager.currentState.GetAllActorsOfClass<AEnemy>())
             {
-                if (spriteComponent.IsCircleColliding(enemy.SpriteComponent.WorldCenter, enemy.SpriteComponent.CollisionRadius * 5.75f))
+                if (spriteComponent.IsCircleColliding(enemy.RootComponent.WorldCenter, enemy.RootComponent.CollisionRadius * 5.75f))
                 {
-                    EffectsManager.AddFlakesEffect(enemy.SpriteComponent.WorldCenter, enemy.RootComponent.velocity / 1, Color.White);
-                    EffectsManager.AddExplosion(enemy.SpriteComponent.WorldCenter, enemy.RootComponent.velocity / 1, enemy.GetColor());
+                    EffectsManager.AddFlakesEffect(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity / 1, Color.White);
+                    EffectsManager.AddExplosion(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity / 1, enemy.GetColor());
 
                     enemy.Destroy();
-                    GameManager.addScore(0);
+                    ((Level)StateManager.currentState).addScore(0);
                 }
             }
             rootComponent.WorldLocation = LatestSpawnPosition;
@@ -322,14 +323,14 @@ namespace AbstractShooter
         protected override void UpdateActor(GameTime gameTime)
         {
             if (Invincibility > 0)
-                Invincibility -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * GameManager.TimeScale;
+                Invincibility -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * StateManager.currentState.TimeScale;
             handleInput(gameTime);
+
             base.UpdateActor(gameTime);
-            
             //Sets the camera so that the player is in its centre
             //Camera.PositionD = new Vector2(this.rootComponent.WorldCenter.X - (Game1.minResolutionX / 2.0f), this.rootComponent.WorldCenter.Y - (Game1.minResolutionY / 2.0f));
             //Camera.Position = new Vector2(this.rootComponent.WorldCenter.X - (Game1.curResolutionX / 2.0f), this.rootComponent.WorldCenter.Y - (Game1.curResolutionY / 2.0f));
-            Camera.Position = new Vector2(spriteComponent.WorldCenter.X - (Camera.ViewPortWidth / 2.0f), spriteComponent.WorldCenter.Y - (Camera.ViewPortHeight / 2.0f));
+            Camera.Position = new Vector2(rootComponent.WorldCenter.X - (Camera.ViewPortWidth / 2.0f), rootComponent.WorldCenter.Y - (Camera.ViewPortHeight / 2.0f));
         }
         public override void Draw()
         {

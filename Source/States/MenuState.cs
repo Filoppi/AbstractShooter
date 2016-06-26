@@ -7,7 +7,7 @@ using InputManagement;
 
 namespace AbstractShooter.States
 {
-    public abstract class MenuState : State
+    public abstract class MenuState : GUIState
     {
         //Delay between two button pressing
         private float MoveTimer = 0.1545F;
@@ -82,7 +82,7 @@ namespace AbstractShooter.States
         {
             base.Draw();
             Game1.spriteBatch.Draw(
-                titleScreen,
+                background,
                 new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY),
                 Color.White);
 

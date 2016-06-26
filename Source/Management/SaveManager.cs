@@ -6,12 +6,13 @@ using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using AbstractShooter.States;
 
 namespace AbstractShooter
 {
     public struct SaveStructure
     {
-        public Int32 HiScore;
+        public int HiScore;
         public bool isMaxResolution;
         public bool isFullScreen;
         public bool isBorderless;
@@ -25,7 +26,7 @@ namespace AbstractShooter
             {
                 Stream stream = new FileStream("Save.bin", FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
                 BinaryWriter w = new BinaryWriter(stream);
-                w.Write(GameManager.HiScore);
+                w.Write(GameInstance.HiScore);
                 w.Write(Game1.isMaxResolution);
                 w.Write(Game1.isFullScreen);
                 w.Write(Game1.isBorderless);
@@ -56,7 +57,7 @@ namespace AbstractShooter
                 stream.Close();
 
                 //if succeeded:
-                GameManager.HiScore = saveStructure.HiScore;
+                GameInstance.HiScore = saveStructure.HiScore;
                 Game1.isMaxResolution = saveStructure.isMaxResolution;
                 Game1.isFullScreen = saveStructure.isFullScreen;
                 Game1.isBorderless = saveStructure.isBorderless;
@@ -71,12 +72,12 @@ namespace AbstractShooter
 
         public static void ClearSave()
         {
-            GameManager.HiScore = 0;
+            GameInstance.HiScore = 0;
             try
             {
                 Stream stream = new FileStream("Save.bin", FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
                 BinaryWriter w = new BinaryWriter(stream);
-                w.Write(GameManager.HiScore);
+                w.Write(GameInstance.HiScore);
                 w.Write(false);
                 w.Write(false);
                 w.Write(false);

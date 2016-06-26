@@ -38,7 +38,7 @@ namespace AbstractShooter
         #region Constructors
         public Sprite(Vector2 worldLocation, float newScale, Texture2D texture, Rectangle initialFrame, Vector2 velocity)
         {
-            this.worldLocation = worldLocation;
+            WorldLocation = worldLocation;
             scale = newScale;
             Texture = texture;
             this.velocity = velocity;
@@ -49,7 +49,7 @@ namespace AbstractShooter
         }
         public Sprite(Vector2 worldLocation, float newScale, Texture2D texture, Color newColor, Rectangle initialFrame, Vector2 velocity)
         {
-            this.worldLocation = worldLocation;
+            WorldLocation = worldLocation;
             scale = newScale;
             Texture = texture;
             tintColor = newColor;
@@ -232,7 +232,7 @@ namespace AbstractShooter
         {
             if (FrameTime != 0 && !Expired)
             {
-                double elapsed = gameTime.ElapsedGameTime.TotalSeconds * GameManager.TimeScale;
+                double elapsed = gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
                 timeForCurrentFrame += elapsed;
 
                 if (Animate)
@@ -366,7 +366,7 @@ namespace AbstractShooter
                         finalColor,
                         DurationProgress);
                 }
-                remainingDuration -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * GameManager.TimeScale;
+                remainingDuration -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * StateManager.currentState.TimeScale;
             }
             else
             {
