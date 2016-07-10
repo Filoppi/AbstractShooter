@@ -99,6 +99,11 @@
     <StartupObject>AbstractShooter.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Source\Components\Components.cs" />
+    <Compile Include="Source\Components\SceneComponent.cs" />
+    <Compile Include="Source\Entities\Actors.cs" />
+    <Compile Include="Source\Entities\Characters\SkeletalEnemy.cs" />
+    <Compile Include="Source\Entities\Objects\Objects.cs" />
     <Compile Include="Source\Game1.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -122,12 +127,12 @@
     <Compile Include="Source\States\GameOver.cs" />
     <Compile Include="Source\States\GUIState.cs" />
     <Compile Include="Source\States\Level.cs" />
+    <Compile Include="Source\States\Specific\PauseMenuState.cs" />
     <Compile Include="Source\States\Specific\MainMenuState.cs" />
     <Compile Include="Source\States\Specific\Levels.cs" />
     <Compile Include="Source\Management\GamePlay\Camera.cs" />
-    <Compile Include="Source\Management\GamePlay\EffectsManager.cs" />
+    <Compile Include="Source\Management\GamePlay\ParticlesManager.cs" />
     <Compile Include="Source\Management\GameManager.cs" />
-    <Compile Include="Source\Management\GamePlay\ObjectManager.cs" />
     <Compile Include="Source\Management\GamePlay\SoundsManager.cs" />
     <Compile Include="Source\Management\GamePlay\TileMap.cs" />
     <Compile Include="Source\Management\GamePlay\WeaponsAndFireManager.cs" />
@@ -135,8 +140,8 @@
     <Compile Include="Source\Management\StateManager.cs" />
     <Compile Include="Source\States\MenuState.cs" />
     <Compile Include="Source\States\NextLevel.cs" />
-    <Compile Include="Source\States\Pause.cs" />
-    <Compile Include="Source\Utility\MathExtention.cs" />
+    <Compile Include="Source\States\PauseState.cs" />
+    <Compile Include="Source\Utility\Utility.cs" />
     <Compile Include="Source\Utility\Primitives2DDraw.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -6,25 +6,28 @@ using AbstractShooter.States;
 
 namespace AbstractShooter
 {
-    public class APlayer : ACharacter
+    public class APlayerActor : ACharacterActor
     {
-        #region Initialization
         //It's a glow that the player spaceship has
         private float ObjectSpeedOriginal;
         private Vector2 LatestSpawnPosition;
         public float Invincibility = 0F;
         private bool PlayShootSound = true;
-        private bool isMineUp = false;
         protected InputMode inputMode = InputModes.KeyboardMouseGamePad1;
-        private SpriteComponent transparentBackground; //Addictional sprite that gives a transparent background
+        private CSpriteComponent transparentBackground; //Addictional sprite that gives a transparent background
 
-        AxisBinding fireAngleX = new AxisBinding(new GamePadAxis[] { GamePadAxis.RightAnalogX }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Up, false), new KeyAxisBinding<Keys>(Keys.Down, true) });
-        AxisBinding fireAngleY = new AxisBinding(new GamePadAxis[] { GamePadAxis.RightAnalogY }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Right, true), new KeyAxisBinding<Keys>(Keys.Left, false) });
+        private ActionBinding turboAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.LeftShift, KeyAction.Down) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.RightShoulder, KeyAction.Down) });
+        private ActionBinding triggerMineAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.LeftControl, KeyAction.Pressed) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.LeftTrigger, KeyAction.Pressed) });
+        private ActionBinding deployMineAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.Space, KeyAction.Pressed) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.RightTrigger, KeyAction.Pressed) }, new KeyBinding<MouseButtons>[] { new KeyBinding<MouseButtons>(MouseButtons.Right, KeyAction.Pressed) });
+        private AxisBinding fireAngleX = new AxisBinding(new KeyAxisBinding<GamePadAxis>[] { new KeyAxisBinding<GamePadAxis>(GamePadAxis.RightAnalogX, 1f)}, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Right, 1f), new KeyAxisBinding<Keys>(Keys.Left, -1F) });
+        private AxisBinding fireAngleY = new AxisBinding(new KeyAxisBinding<GamePadAxis>[] { new KeyAxisBinding<GamePadAxis>(GamePadAxis.RightAnalogY, -1f) }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.Up, -1F), new KeyAxisBinding<Keys>(Keys.Down, 1f) });
+        private AxisBinding movementAngleX = new AxisBinding(new KeyAxisBinding<GamePadAxis>[] { new KeyAxisBinding<GamePadAxis>(GamePadAxis.LeftAnalogX, 1f) }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.D, 1f), new KeyAxisBinding<Keys>(Keys.A, -1F) });
+        private AxisBinding movementAngleY = new AxisBinding(new KeyAxisBinding<GamePadAxis>[] { new KeyAxisBinding<GamePadAxis>(GamePadAxis.LeftAnalogY, -1f) }, new KeyAxisBinding<Keys>[] { new KeyAxisBinding<Keys>(Keys.S, 1f), new KeyAxisBinding<Keys>(Keys.W, -1F) });
 
-        public APlayer(Vector2 worldLocation)
+        public APlayerActor(Vector2 worldLocation)
             : base(StateManager.currentState.spriteSheet, new List<Rectangle> { new Rectangle(0, 96, 32, 32) }, ComponentUpdateGroup.AfterActor, DrawGroup.Players, worldLocation)
         {
-            transparentBackground = new SpriteComponent(
+            transparentBackground = new CSpriteComponent(
                 this,
                 StateManager.currentState.spriteSheet,
                 new List<Rectangle> { new Rectangle(32, 96, 32, 32) },
@@ -37,72 +40,21 @@ namespace AbstractShooter
                 0,
                 new Color(66, 66, 66, 0));
 
+            spriteComponent.collisionGroup = (int)ComponentCollisionGroup.Character;
+            spriteComponent.overlappingGroups = ComponentCollisionGroup.Character | ComponentCollisionGroup.Static;
+
             ObjectSpeed = 390;
             ObjectSpeedOriginal = 390;
 
             Invincibility = 0F;
             LatestSpawnPosition = worldLocation;
             Lives = 3;
-            isMineUp = false;
         }
-        #endregion
         
-        #region Input Handling
-        private Vector2 handleKeyboardMovement()
+        private void HandleInput(GameTime gameTime)
         {
-            Vector2 keyMovement = Vector2.Zero;
-            if (InputManager.currentKeyboardState.IsKeyDown(Keys.W))
-                keyMovement.Y--;
-
-            if (InputManager.currentKeyboardState.IsKeyDown(Keys.A))
-                keyMovement.X--;
-
-            if (InputManager.currentKeyboardState.IsKeyDown(Keys.S))
-                keyMovement.Y++;
-
-            if (InputManager.currentKeyboardState.IsKeyDown(Keys.D))
-                keyMovement.X++;
-
-            return keyMovement;
-        }
-        private Vector2 handleGamePadMovement()
-        {
-            return new Vector2(InputManager.currentGamePadState[0].ThumbSticks.Left.X, -InputManager.currentGamePadState[0].ThumbSticks.Left.Y);
-        }
-        private Vector2 handleMouseShots()
-        {
-            return new Vector2(InputManager.currentMouseState.Position.X - (Game1.curResolutionX / 2), InputManager.currentMouseState.Position.Y - (Game1.curResolutionY / 2));
-        }
-        private bool handleMineShots()
-        {
-            bool fireMine = false;
-            if (InputManager.currentGamePadState[0].Triggers.Right > 0.1f || InputManager.currentMouseState.RightButton  == ButtonState.Pressed)
-            {
-                fireMine = true;
-            }
-            else if (InputManager.currentKeyboardState.IsKeyUp(Keys.Space))
-            {
-                isMineUp = true;
-            }
-            else if (isMineUp && InputManager.currentKeyboardState.IsKeyDown(Keys.Space))
-            {
-                fireMine = true;
-                isMineUp = false;
-            }
-            else if (InputManager.currentKeyboardState.IsKeyDown(Keys.Space))
-            {
-                isMineUp = false;
-            }
-            return fireMine;
-        }
-        private bool handleMineTrigger()
-        {
-            return (InputManager.currentGamePadState[0].Triggers.Left > 0.1f || InputManager.currentKeyboardState.IsKeyDown(Keys.LeftControl));
-        }
-        private void handleTurbo()
-        {
-            if ((InputManager.currentGamePadState[0].Buttons.RightShoulder == ButtonState.Pressed) ||
-                (InputManager.currentKeyboardState.IsKeyDown(Keys.LeftShift)))
+            //Turbo
+            if (turboAction.CheckBindings(inputMode))
             {
                 WeaponsAndFireManager.WeaponSpeed = WeaponsAndFireManager.WeaponSpeedOriginal * 1.24f;
                 ObjectSpeed = ObjectSpeedOriginal * 1.77f;
@@ -112,38 +64,35 @@ namespace AbstractShooter
                 WeaponsAndFireManager.WeaponSpeed = WeaponsAndFireManager.WeaponSpeedOriginal;
                 ObjectSpeed = ObjectSpeedOriginal;
             }
-        }
-        private void handleInput(GameTime gameTime)
-        {
-            handleTurbo();
 
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
 
             Vector2 moveAngle = Vector2.Zero;
             Vector2 fireAngle = Vector2.Zero;
 
-            if (inputMode.Keyboard && (!inputMode.GamePads[0] || !InputManager.IsUsingGamePad))
-            {
-                moveAngle = handleKeyboardMovement();
-            }
-            else
-            {
-                moveAngle = handleGamePadMovement();
-            }
+            moveAngle = new Vector2(movementAngleX.CheckBindings(inputMode), movementAngleY.CheckBindings(inputMode));
+            //if (inputMode.Keyboard && (!inputMode.GamePads[0] || !InputManager.IsUsingGamePad))
+            //{
+            //    moveAngle = handleKeyboardMovement();
+            //}
+            //else
+            //{
+            //    moveAngle = handleGamePadMovement();
+            //}
             if (inputMode.Mouse && Mouse.GetState().LeftButton == ButtonState.Pressed)
             {
-                fireAngle = handleMouseShots();
+                fireAngle = new Vector2(InputManager.currentMouseState.Position.X - (Game1.curResolutionX / 2), InputManager.currentMouseState.Position.Y - (Game1.curResolutionY / 2));
             }
             else
             {
-                fireAngle = new Vector2(fireAngleX.CheckBindings(inputMode), -fireAngleY.CheckBindings(inputMode));
+                fireAngle = new Vector2(fireAngleX.CheckBindings(inputMode), fireAngleY.CheckBindings(inputMode));
             }
 
             if (moveAngle != Vector2.Zero)
             {
                 moveAngle.Normalize();
                 ObjectAngle = moveAngle;
-                moveAngle = checkTileObstacles(elapsed, moveAngle);
+                moveAngle = CheckTileObstacles(elapsed, moveAngle);
                 //moveAngle.Normalize();
                 if (WeaponsAndFireManager.CanFireSmog)
                 {
@@ -175,7 +124,7 @@ namespace AbstractShooter
                 }
             }
 
-            if (handleMineShots())
+            if (deployMineAction.CheckBindings(inputMode))
             {
                 if (WeaponsAndFireManager.CanFireMine)
                 {
@@ -183,63 +132,46 @@ namespace AbstractShooter
                     SoundsManager.PlayShootMine();
                 }
             }
-            else if (handleMineTrigger())
+            else if (triggerMineAction.CheckBindings(inputMode))
             {
                 WeaponsAndFireManager.TriggerMines();
             }
         }
-        #endregion
-
-        #region Movements
+        
         public void ResetLocation()
         {
-            foreach (AEnemy enemy in StateManager.currentState.GetAllActorsOfClass<AEnemy>())
+            foreach (AEnemyActor enemy in StateManager.currentState.GetAllActorsOfType<AEnemyActor>())
             {
-                if (spriteComponent.IsCircleColliding(enemy.RootComponent.WorldCenter, enemy.RootComponent.CollisionRadius * 5.75f))
+                foreach (CSpriteComponent spriteComponent in enemy.GetSceneComponentsByClass<CSpriteComponent>())
                 {
-                    EffectsManager.AddFlakesEffect(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity / 1, Color.White);
-                    EffectsManager.AddExplosion(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity / 1, enemy.GetColor());
+                    if (new Circle(spriteComponent.WorldLocation, spriteComponent.CollisionRadius * 5.75f).IsCollidingWith(enemy.RootComponent.CollisionCircle))
+                    {
+                        ParticlesManager.AddFlakesEffect(spriteComponent.WorldCenter,
+                            spriteComponent.localVelocity/1, Color.White);
+                        ParticlesManager.AddExplosion(spriteComponent.WorldCenter, spriteComponent.localVelocity/1,
+                            enemy.GetColor());
 
-                    enemy.Destroy();
-                    ((Level)StateManager.currentState).addScore(0);
+                        ((Level)StateManager.currentState).addScore(0);
+                        enemy.Destroy();
+                        break;
+                    }
                 }
             }
             rootComponent.WorldLocation = LatestSpawnPosition;
             Invincibility = 187;
         }
-        private void ClampToWorld()
+        private Vector2 CheckTileObstacles(float elapsedTime, Vector2 moveAngle)
         {
-            float currentX = rootComponent.WorldLocation.X;
-            float currentY = rootComponent.WorldLocation.Y;
-
-            currentX = MathHelper.Clamp(
-                currentX,
-                0,
-                Camera.WorldRectangle.Right - spriteComponent.FrameWidth);
-
-            currentY = MathHelper.Clamp(
-                currentY,
-                0,
-                Camera.WorldRectangle.Bottom - spriteComponent.FrameHeight);
-
-            rootComponent.WorldLocation = new Vector2(currentX, currentY);
-        }
-        private Vector2 checkTileObstacles(float elapsedTime, Vector2 moveAngle)
-        {
-            Vector2 newHorizontalLocation = rootComponent.WorldLocation +
-                (new Vector2(moveAngle.X, 0) * (ObjectSpeed * elapsedTime));
-
-            Vector2 newVerticalLocation = rootComponent.WorldLocation +
-                (new Vector2(0, moveAngle.Y) * (ObjectSpeed * elapsedTime));
+            Vector2 newHorizontalLocation = spriteComponent.TopLeftLocation + (new Vector2(moveAngle.X, 0) * (ObjectSpeed * elapsedTime));
+            Vector2 newVerticalLocation = spriteComponent.TopLeftLocation + (new Vector2(0, moveAngle.Y) * (ObjectSpeed * elapsedTime));
 
             Rectangle newHorizontalRect = new Rectangle(
                 (int)newHorizontalLocation.X,
-                (int)rootComponent.WorldLocation.Y,
+                (int)spriteComponent.TopLeftLocation.Y,
                 spriteComponent.FrameWidth,
                 spriteComponent.FrameHeight);
-
             Rectangle newVerticalRect = new Rectangle(
-                (int)rootComponent.WorldLocation.X,
+                (int)spriteComponent.TopLeftLocation.X,
                 (int)newVerticalLocation.Y,
                 spriteComponent.FrameWidth,
                 spriteComponent.FrameHeight);
@@ -255,8 +187,7 @@ namespace AbstractShooter
                 horizLeftPixel = (int)newHorizontalRect.Left;
                 horizRightPixel = (int)spriteComponent.WorldRectangle.Left;
             }
-
-            if (moveAngle.X > 0)
+            else if (moveAngle.X > 0)
             {
                 horizLeftPixel = (int)spriteComponent.WorldRectangle.Right;
                 horizRightPixel = (int)newHorizontalRect.Right;
@@ -267,48 +198,32 @@ namespace AbstractShooter
                 vertTopPixel = (int)newVerticalRect.Top;
                 vertBottomPixel = (int)spriteComponent.WorldRectangle.Top;
             }
-
-            if (moveAngle.Y > 0)
+            else if (moveAngle.Y > 0)
             {
                 vertTopPixel = (int)spriteComponent.WorldRectangle.Bottom;
                 vertBottomPixel = (int)newVerticalRect.Bottom;
             }
 
-            if (moveAngle.X != 0)
+            if (moveAngle.X != 0 && spriteComponent.FrameHeight > 0)
             {
                 for (int x = horizLeftPixel; x < horizRightPixel; x++)
                 {
-                    for (int y = 0; y < spriteComponent.FrameHeight; y++)
+                    if (((Level)StateManager.currentState).grid.IsWallTileByPixel(new Vector2(x, newHorizontalLocation.Y))
+                        || ((Level)StateManager.currentState).grid.IsWallTileByPixel(new Vector2(x, newHorizontalLocation.Y + spriteComponent.FrameHeight - 1)))
                     {
-                        if (TileMap.IsWallTileByPixel(
-                            new Vector2(x, newHorizontalLocation.Y + y)))
-                        {
-                            moveAngle.X = 0;
-                            break;
-                        }
-                    }
-                    if (moveAngle.X == 0)
-                    {
+                        moveAngle.X = 0;
                         break;
                     }
                 }
             }
-
-            if (moveAngle.Y != 0)
+            if (moveAngle.Y != 0 && spriteComponent.FrameWidth > 0)
             {
                 for (int y = vertTopPixel; y < vertBottomPixel; y++)
                 {
-                    for (int x = 0; x < spriteComponent.FrameWidth; x++)
+                    if (((Level)StateManager.currentState).grid.IsWallTileByPixel(new Vector2(newVerticalLocation.X, y))
+                        || ((Level)StateManager.currentState).grid.IsWallTileByPixel(new Vector2(newVerticalLocation.X + spriteComponent.FrameWidth - 1, y)))
                     {
-                        if (TileMap.IsWallTileByPixel(
-                            new Vector2(newVerticalLocation.X + x, y)))
-                        {
-                            moveAngle.Y = 0;
-                            break;
-                        }
-                    }
-                    if (moveAngle.Y == 0)
-                    {
+                        moveAngle.Y = 0;
                         break;
                     }
                 }
@@ -316,21 +231,16 @@ namespace AbstractShooter
 
             return moveAngle;
         }
-        #endregion
-
-        #region Update and Draw
-
+        
         protected override void UpdateActor(GameTime gameTime)
         {
             if (Invincibility > 0)
                 Invincibility -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * StateManager.currentState.TimeScale;
-            handleInput(gameTime);
+            HandleInput(gameTime);
 
             base.UpdateActor(gameTime);
             //Sets the camera so that the player is in its centre
-            //Camera.PositionD = new Vector2(this.rootComponent.WorldCenter.X - (Game1.minResolutionX / 2.0f), this.rootComponent.WorldCenter.Y - (Game1.minResolutionY / 2.0f));
-            //Camera.Position = new Vector2(this.rootComponent.WorldCenter.X - (Game1.curResolutionX / 2.0f), this.rootComponent.WorldCenter.Y - (Game1.curResolutionY / 2.0f));
-            Camera.Position = new Vector2(rootComponent.WorldCenter.X - (Camera.ViewPortWidth / 2.0f), rootComponent.WorldCenter.Y - (Camera.ViewPortHeight / 2.0f));
+            Camera.Center = rootComponent.WorldCenter;
         }
         public override void Draw()
         {
@@ -347,6 +257,65 @@ namespace AbstractShooter
                 base.Draw();
             }
         }
-        #endregion
+        public override void BeginActorOverlap(AActor otherActor)
+        {
+            if (otherActor is AEnemyActor)
+            {
+                if (Invincibility <= 0)
+                {
+                    foreach (CSpriteComponent spriteComponent in otherActor.GetSceneComponentsByClass<CSpriteComponent>())
+                    {
+                        if (spriteComponent.IsInViewport &&
+                            spriteComponent.CollisionCircle.IsCollidingWith(RootComponent.CollisionCircle))
+                        {
+                            ParticlesManager.AddFlakesEffect(spriteComponent.WorldCenter,
+                                spriteComponent.localVelocity/1, ((AEnemyActor)otherActor).GetColor());
+                            ParticlesManager.AddExplosion(spriteComponent.WorldCenter,
+                                spriteComponent.localVelocity/1, Color.White);
+
+                            otherActor.Destroy();
+
+                            //addScore(0); //TO readd
+                            SoundsManager.PlayKill(otherActor.WorldLocation);
+                            Hit();
+                            ResetLocation();
+                            //SoundsManager.PlaySpawn();
+                            //Multiplier = 1; //TO readd
+                            //Clean every weapon, shot and powerup that is in the current scene.
+                            List<AMineActor> mines = StateManager.currentState.GetAllActorsOfType<AMineActor>();
+                            foreach (AMineActor mine in mines)
+                            {
+                                mine.Destroy();
+                            }
+                            List<APowerUpActor> powerUps = StateManager.currentState.GetAllActorsOfType<APowerUpActor>();
+                            foreach (APowerUpActor powerUp in powerUps)
+                            {
+                                powerUp.Destroy();
+                            }
+                            List<AProjectileActor> projectiles =
+                                StateManager.currentState.GetAllActorsOfType<AProjectileActor>();
+                            foreach (AProjectileActor projectile in projectiles)
+                            {
+                                projectile.Destroy();
+                            }
+                            //To clear smog
+                            WeaponsAndFireManager.CurrentWeaponType = WeaponsAndFireManager.WeaponType.Normal;
+                            WeaponsAndFireManager.WeaponSpeed = WeaponsAndFireManager.WeaponSpeedOriginal;
+                            WeaponsAndFireManager.shotMinTimer = WeaponsAndFireManager.shotMinTimerOriginal;
+                            break;
+                        }
+                    }
+                }
+                if (Lives <= 0)
+                {
+                    StateManager.CreateAndSetState<States.GameOver>();
+                    //BinaryWriter
+                    //if (Endless) //TO readd
+                    {
+                        SaveManager.Save();
+                    }
+                }
+            }
+        }
     }
 }

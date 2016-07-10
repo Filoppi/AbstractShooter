@@ -2,121 +2,118 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using InputManagement;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 
 namespace AbstractShooter
 {
     public static class Camera
     {
-        private static Vector2 position = Vector2.Zero;
-        //private static Vector2 positionD = Vector2.Zero;
-        private static Vector2 viewPortSize = Vector2.Zero;
-        private static Rectangle worldRectangle = new Rectangle(-3840, -3840, 3840, 3840);
-
-        public static Vector2 Position
+        public const int defaultViewPortX = 1280;
+        public const int defaultViewPortY = 720;
+        private static Vector2 centerLocation = Vector2.Zero;
+        private static Vector2 topLeftLocation = Vector2.Zero;
+        private static Vector2 viewPort = new Vector2(defaultViewPortX, defaultViewPortY);
+        private static float zoomScale = 1F;
+        public static float ZoomScale
         {
-            get { return position; }
+            get { return zoomScale; }
+            set { zoomScale = value.GetClamped(0.01F, 10F); }
+        }
+        public static float DrawScale { get { return Game1.ResolutionScale * zoomScale; } }
+
+        public static Vector2 TopLeft
+        {
+            get { return topLeftLocation; }
             set
             {
-                position = new Vector2(
-                    MathHelper.Clamp(value.X,
-                        worldRectangle.X,
-                        worldRectangle.Width - ViewPortWidth),
-                    MathHelper.Clamp(value.Y,
-                        worldRectangle.Y,
-                        worldRectangle.Height - ViewPortHeight));
+                topLeftLocation = value;
+                centerLocation = value + (ViewPort * 0.5F);
             }
         }
-        public static Vector2 DefaultPosition
+        public static Vector2 Center
         {
-            get { return position + (new Vector2(ViewPortWidth, ViewPortHeight) * 0.5F) - (new Vector2(ViewPortWidth, ViewPortHeight) * 0.5F / Game1.resolutionScale); }
+            get { return centerLocation; }
+            set
+            {
+                centerLocation = value;
+                topLeftLocation = value - (ViewPort * 0.5F);
+            }
         }
-        //public static Vector2 Center
-        //{
-        //    get { return position + (new Vector2(ViewPortWidth, ViewPortHeight) * 0.5F); }
-        //}
-        //public static Vector2 PositionD
-        //{
-        //    get { return positionD; }
-        //    set
-        //    {
-        //        positionD = new Vector2(
-        //            MathHelper.Clamp(value.X,
-        //                worldRectangle.X,
-        //                worldRectangle.Width - ViewPortWidth),
-        //            MathHelper.Clamp(value.Y,
-        //                worldRectangle.Y,
-        //                worldRectangle.Height - ViewPortHeight));
-        //    }
-        //}
-
-        public static Rectangle WorldRectangle
+        public static Vector2 BottomRight
         {
-            get { return worldRectangle; }
-            set { worldRectangle = value; }
+            get { return topLeftLocation + ViewPort; }
         }
 
+        public static Vector2 ViewPort
+        {
+            get { return viewPort / zoomScale; }
+        }
         public static int ViewPortWidth
         {
-            get { return (int)viewPortSize.X; }
-            set { viewPortSize.X = value; }
+            get { return (int)(viewPort.X / zoomScale); }
+            set { viewPort.X = value; }
         }
-
         public static int ViewPortHeight
         {
-            get { return (int)viewPortSize.Y; }
-            set { viewPortSize.Y = value; }
+            get { return (int)(viewPort.Y / zoomScale); }
+            set { viewPort.Y = value; }
         }
-
-        public static void ChangeResolution(int X, int Y)
-        {
-            //ViewPortWidth = X;
-            //ViewPortHeight = Y;
-            ViewPortWidth = Game1.minResolutionX;
-            ViewPortHeight = Game1.minResolutionY;
-        }
-
-        public static Rectangle ViewPort
+        
+        public static Rectangle ViewPortRectangle
         {
             get
             {
-                return new Rectangle(
-                    (int)Position.X, (int)Position.Y,
-                    ViewPortWidth, ViewPortHeight);
+                return new Rectangle((int)topLeftLocation.X, (int)topLeftLocation.Y,
+                    ViewPortWidth,
+                    ViewPortHeight);
             }
         }
+        //public static Rectangle HalvedViewPort //Just for test.. Could be used as a kind of torch in exploration levels if the shape was circular???
+        //{
+        //    get
+        //    {
+        //        return new Rectangle(
+        //            (int)Position.X + (ViewPortWidth / 4), (int)Position.Y + (ViewPortHeight / 4),
+        //            ViewPortWidth / 2, ViewPortHeight / 2);
+        //    }
+        //}
 
         //public static void Move(Vector2 offset)
         //{
         //    Position += offset;
         //}
 
-        public static bool ObjectIsVisible(Rectangle bounds)
+        public static bool IsRectangleVisible(Rectangle worldRectangle)
         {
-            return (ViewPort.Intersects(bounds));
+            return ViewPortRectangle.Intersects(worldRectangle);
         }
 
-        public static Vector2 Transform(Vector2 point)
+        public static Vector2 GetNormalizedViewPortAlpha(Vector2 worldLocation)
         {
-            return (point - position) * Game1.resolutionScale;
+            return (worldLocation - centerLocation) / (ViewPort / 2);
         }
 
-        public static Rectangle Transform(Rectangle rectangle)
+        public static Vector2 WorldToScreenSpace(Vector2 worldLocation)
+        {
+            return (worldLocation - topLeftLocation) * DrawScale;
+        }
+        public static Rectangle WorldToScreenSpace(Rectangle worldRectangle)
         {
             return new Rectangle(
-                (int)Math.Round(((float)rectangle.Left - position.X) * Game1.resolutionScale),
-                (int)Math.Round(((float)rectangle.Top - position.Y) * Game1.resolutionScale),
-                (int)Math.Round(((float)rectangle.Width * Game1.resolutionScale)),
-                (int)Math.Round(((float)rectangle.Height * Game1.resolutionScale)));
+                (int)Math.Round((worldRectangle.Left - topLeftLocation.X) * DrawScale),
+                (int)Math.Round((worldRectangle.Top - topLeftLocation.Y) * DrawScale),
+                (int)Math.Round((worldRectangle.Width * DrawScale)),
+                (int)Math.Round((worldRectangle.Height * DrawScale)));
         }
-
-        public static RectangleF Transform(RectangleF rectangle)
+        public static RectangleF WorldToScreenSpace(RectangleF worldRectangle)
         {
             return new RectangleF(
-                (rectangle.X - position.X) * Game1.resolutionScale,
-                (rectangle.Y - position.Y) * Game1.resolutionScale,
-                rectangle.Width * Game1.resolutionScale,
-                rectangle.Height * Game1.resolutionScale);
+                (worldRectangle.X - topLeftLocation.X) * DrawScale,
+                (worldRectangle.Y - topLeftLocation.Y) * DrawScale,
+                worldRectangle.Width * DrawScale,
+                worldRectangle.Height * DrawScale);
         }
     }
 }

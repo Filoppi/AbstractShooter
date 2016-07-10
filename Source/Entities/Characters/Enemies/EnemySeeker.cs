@@ -8,7 +8,7 @@ using AbstractShooter.States;
 
 namespace AbstractShooter
 {
-    public class AEnemySeeker : AEnemy
+    public class AEnemySeekerActor : AEnemyActor
     {
         private static Random rand = new Random();
         private Vector2 OffSet;
@@ -22,14 +22,14 @@ namespace AbstractShooter
         private bool surroundingPlayer = true;
         private float SinusoidalRotation;
         
-        public AEnemySeeker(Vector2 worldLocation, int newType, int newSpeed)
+        public AEnemySeekerActor(Vector2 worldLocation, int newType, int newSpeed)
             : base(StateManager.currentState.spriteSheet, new List<Rectangle> { new Rectangle(0, 250, 32, 32) }, ComponentUpdateGroup.AfterActor, DrawGroup.Characters, worldLocation, true)
         {
             type = newType;
             Lives = 5;
             if (type == 6) //Pink Circle
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 250, 32, 32) },
                     null,
@@ -41,7 +41,7 @@ namespace AbstractShooter
             }
             else if (type == 5) //Orange Pinwheel
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(34, 288, 32, 32) },
                     null,
@@ -52,7 +52,7 @@ namespace AbstractShooter
             }
             else if (type == 4) //Violet Star
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 288, 32, 32) },
                     null,
@@ -64,7 +64,7 @@ namespace AbstractShooter
             }
             else if (type == 3) //Yellow Triangle
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(8, 231, 18, 18) },
                     null,
@@ -76,7 +76,7 @@ namespace AbstractShooter
             }
             else if (type == 2) //Green Square
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 194, 32, 32),
                         new Rectangle(32, 194, 32, 32),
@@ -101,7 +101,7 @@ namespace AbstractShooter
             }
             else //if (type == 1) //Sky blue diamond
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 161, 32, 32),
                         new Rectangle(32, 161, 32, 32),
@@ -119,7 +119,10 @@ namespace AbstractShooter
                 spriteComponent.GenerateDefaultAnimation(0.1F);
             }
             rootComponent = spriteComponent;
-            AddComponent(new ScalingBehaveComponent(this));
+            spriteComponent.collisionGroup = (int)ComponentCollisionGroup.Character;
+            spriteComponent.overlappingGroups = ComponentCollisionGroup.Character | ComponentCollisionGroup.Static | ComponentCollisionGroup.Weapon;
+
+            AddComponent(new CScalingBehaveComponent(this));
 
             //Decide if this enemy is going to try to surround the player
             if (rand.Next(0, 4) == 3)
@@ -170,23 +173,24 @@ namespace AbstractShooter
             //else if (type == 1) //Sky blue diamond
             return new Color(60, 226, 255);
         }
-        private new Vector2 determineMoveDirection()
+        protected override void CollidedWithWorldBorders()
         {
-            return StateManager.currentState.GetAllActorsOfClass<APlayer>()[FollowingPlayerN].RootComponent.WorldCenter - rootComponent.WorldCenter;
+            DetermineMoveDirection();
+        }
+        protected override void DetermineMoveDirection()
+        {
+            ObjectAngle = StateManager.currentState.GetAllActorsOfType<APlayerActor>()[FollowingPlayerN].RootComponent.WorldCenter - rootComponent.WorldCenter;
+            ObjectAngle.Normalize();
         }
 
         protected override void UpdateActor(GameTime gameTime)
         {
-            ObjectAngle = determineMoveDirection();
-            ObjectAngle.Normalize();
+            DetermineMoveDirection();
 
             //Make enemies travel with a Sinusoidal wave
             if (surroundingPlayer)
             {
-                if (goingUp)
-                    OffSetCurrent = new Vector2(0, OffSetCurrent.Y + (SinusoidalRotation * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale) * 60F);
-                else
-                    OffSetCurrent = new Vector2(0, OffSetCurrent.Y - (SinusoidalRotation * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale) * 60F);
+                OffSetCurrent = new Vector2(0, OffSetCurrent.Y + (SinusoidalRotation * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale * 60F * (goingUp ? 1F : -1F)));
 
                 if (OffSetCurrent.Y > OffSet.Y)
                 {

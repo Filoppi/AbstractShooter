@@ -27,10 +27,11 @@ namespace AbstractShooter.States
         public int LevelDimensionX { get { return levelDimensionX; } }
         public int LevelDimensionY { get { return levelDimensionY; } }
         protected float TimeLeft = 60; //private
-        protected int EnemiesLeft = 0;
+        protected int EnemiesLeft;
         protected bool isEndless = false;
         protected int levelIndex = 0;
-        public bool isLastLevel = false; 
+        public bool isLastLevel = false;
+        public int maxInGameEnemies = 50;
 
         //Gamemanger
         public int CurrentDifficulty = 1; //1 = Super Easy, 2 = Easy, 3 = Medium, 4 = Hard, 5 = Extreme
@@ -39,14 +40,19 @@ namespace AbstractShooter.States
         private float EnemySpawTimerOriginal = 1.6666F;
         //Time to win the level
         //Endless mode (Time and EnemiesLeft are ignored)
-        private bool Endless = false;
         //Enemies left to kill
         private int EnemiesSpawned = 0;
         //Enemies max in game
         private int EnemiesMax = 100;
         private Random rand = new Random();
         public Grid grid;
-        private ActionBinding pauseAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.P, KeyAction.Pressed) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.Start, KeyAction.Pressed) });
+        private ActionBinding pauseAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.P, KeyAction.Pressed), new KeyBinding<Keys>(Keys.Escape, KeyAction.Pressed) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.Start, KeyAction.Pressed) });
+
+        public override void OnSetAsCurrentState()
+        {
+            base.OnSetAsCurrentState();
+            SoundsManager.ResumeMusic();
+        }
 
         public override void Initialize()
         {
@@ -63,12 +69,24 @@ namespace AbstractShooter.States
             EnemySpawTimerOriginal = EnemySpawTimer;
             EnemiesSpawned = 0;
 
+            ParticlesManager.Initialize();
             TileMap.Initialize(levelDimensionX, levelDimensionY);
             grid = new Grid();
             grid.Initialize(levelDimensionX, levelDimensionY);
             WeaponsAndFireManager.Initialize();
-            ObjectManager.Initialize(NOfPlayers);
-            Camera.Position = Vector2.Zero;
+            
+            if (NOfPlayers == 1)
+            {
+                APlayerActor P1 = new APlayerActor(new Vector2(((Level)StateManager.currentState).LevelDimensionX / 2.0f, ((Level)StateManager.currentState).LevelDimensionY / 2.0f));
+            }
+            else if (NOfPlayers == 2)
+            {
+                APlayerActor P1 = new APlayerActor(new Vector2(((Level)StateManager.currentState).LevelDimensionX / 2.0f, ((Level)StateManager.currentState).LevelDimensionY / 2.0f));
+                //Adds a second player
+                APlayerActor P2 = new APlayerActor(new Vector2(((Level)StateManager.currentState).LevelDimensionX / 2.0f, ((Level)StateManager.currentState).LevelDimensionY / 2.0f));
+            }
+
+            Camera.TopLeft = Vector2.Zero;
 
             //Avoids bugs with the player in case the music wasn't stopped
             SoundsManager.PauseMusic();
@@ -79,26 +97,23 @@ namespace AbstractShooter.States
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
-            if (!Endless && TimeLeft > 0)
+            if (!isEndless && TimeLeft > 0)
             {
                 TimeLeft -= (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
             }
 
-#if (DEBUG)
-            fps = 1 / gameTime.ElapsedGameTime.TotalSeconds;
-#endif
             //Spawn Enemies
-            if (EnemySpawTimer <= 0 && StateManager.currentState.GetAllActorsOfClass<AEnemy>().Count() < 50)
+            if (EnemySpawTimer <= 0 && StateManager.currentState.GetAllActorsOfType<AEnemyActor>().Count() < maxInGameEnemies)
             {
-                if (Endless)
+                if (isEndless)
                 {
-                    ObjectManager.AddEnemy(ObjectManager.RandomLocation(), rand.Next(1, 7), CurrentDifficulty);
+                    AddEnemy(RandomLocation(), rand.Next(1, 7), CurrentDifficulty);
                     EnemySpawTimer = EnemySpawTimerOriginal;
                     EnemiesSpawned++;
                 }
                 else if (EnemiesSpawned < EnemiesMax)
                 {
-                    ObjectManager.AddEnemy(ObjectManager.RandomLocation(), rand.Next(1, 7), CurrentDifficulty);
+                    AddEnemy(RandomLocation(), rand.Next(1, 7), CurrentDifficulty);
                     EnemySpawTimer = EnemySpawTimerOriginal;
                     EnemiesSpawned++;
                 }
@@ -109,11 +124,10 @@ namespace AbstractShooter.States
             }
 
             grid.Update();
-            //ObjectManager.Update(gameTime);
             WeaponsAndFireManager.Update(gameTime);
-            //EffectsManager.Update(gameTime);
+            ParticlesManager.Update(gameTime);
 
-            checkPlayerDeath();
+            //checkPlayerDeath();
 
             if (TimeLeft <= 0 || EnemiesLeft <= 0)
             {
@@ -123,30 +137,31 @@ namespace AbstractShooter.States
                 }
                 else
                 {
-                    StateManager.CreateAndSetState<States.NextLevel>();
-                    (StateManager.nextState as States.NextLevel).TimeLeft = TimeLeft;
+                    StateManager.CreateAndSetState<States.NextLevel>().TimeLeft = TimeLeft;
                 }
             }
             else if (pauseAction.CheckBindings())
                 StateManager.Pause();
         }
-        public override void Draw()
-        {
-            Game1.spriteBatch.End();
 
+        public override void BeginDraw()
+        {
             Game1.Get.GraphicsDevice.SetRenderTarget(Game1.renderTarget1);
             Game1.Get.GraphicsDevice.Clear(Color.TransparentBlack);
 
-            Game1.spriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
+            Game1.spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend);
 
             //TileMap.Draw();
             grid.Draw();
-
-            base.Draw();
+        }
+        public override void EndDraw()
+        {
+            ParticlesManager.Draw();
 
             Game1.spriteBatch.End();
 
             Game1.bloom.Draw(Game1.renderTarget1, Game1.renderTarget2);
+
             Game1.Get.GraphicsDevice.SetRenderTarget(null);
 
             //Draw bloomed layer over top: 
@@ -154,8 +169,72 @@ namespace AbstractShooter.States
             Game1.spriteBatch.Draw(Game1.renderTarget2, new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY), Color.White); // draw all glowing components            
 
             DrawUI();
+
+            base.EndDraw();
         }
-        
+        public void DrawUI()
+        {
+            float stringScale = 0.545F;
+            string stringToDraw = "Score: " + GetScore().ToString();
+
+            Game1.spriteBatch.DrawString(Game1.defaultFont,
+                stringToDraw,
+                new Vector2(Game1.curResolutionX * 0.86094F, Game1.curResolutionY * 0.00694F),
+                Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+
+            stringToDraw = "Multiplier: " + Multiplier;
+            Game1.spriteBatch.DrawString(Game1.defaultFont,
+                stringToDraw,
+                new Vector2(Game1.curResolutionX * 0.01328F, Game1.curResolutionY * 0.00694F),
+                Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+
+            if (!isEndless)
+            {
+                Vector2 stringSize;
+                stringToDraw = "Time : " + (int)TimeLeft;
+                if (TimeLeft >= 100)
+                {
+                    stringSize = Game1.defaultFont.MeasureString("Time : 999") * Game1.defaultFontScale * stringScale;
+                }
+                else
+                {
+                    stringSize = Game1.defaultFont.MeasureString("Time : 99") * Game1.defaultFontScale * stringScale;
+                }
+                Game1.spriteBatch.DrawString(Game1.defaultFont,
+                    stringToDraw,
+                    new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), Game1.curResolutionY * 0.00694F),
+                Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+            }
+
+            stringToDraw = "Mines: " + WeaponsAndFireManager.minesNumber;
+            Game1.spriteBatch.DrawString(Game1.defaultFont,
+                stringToDraw,
+                new Vector2(Game1.curResolutionX * 0.01328F, Game1.curResolutionY * 0.9583F),
+                Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+
+            List<APlayerActor> player = StateManager.currentState.GetAllActorsOfType<APlayerActor>();
+            if (NOfPlayers == 1 && player.Count == 1)
+            {
+                stringToDraw = "Lives: " + player[0].Lives;
+                Game1.spriteBatch.DrawString(Game1.defaultFont,
+                    stringToDraw,
+                    new Vector2(Game1.curResolutionX * 0.9015625F, Game1.curResolutionY * 0.9583F),
+                    Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+            }
+            else if (NOfPlayers == 2 && player.Count == 2)
+            {
+                stringToDraw = "Lives: " + StateManager.currentState.GetAllActorsOfType<APlayerActor>()[0].Lives + "/" + StateManager.currentState.GetAllActorsOfType<APlayerActor>()[1].Lives;
+                Game1.spriteBatch.DrawString(Game1.defaultFont,
+                    stringToDraw,
+                    new Vector2(Game1.curResolutionX * 0.8625F, Game1.curResolutionY * 0.9583F),
+                    Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+            }
+
+#if (DEBUG)
+            Game1.DrawFPS();
+#endif
+        }
+
         public int GetScore()
         {
             return GameInstance.Score;
@@ -175,7 +254,7 @@ namespace AbstractShooter.States
         public void addScore(int toAdd)
         {
             GameInstance.Score += toAdd * Multiplier;
-            if (!Endless)
+            if (!isEndless)
                 EnemiesLeft--;
         }
         public void growMultiplier()
@@ -187,139 +266,81 @@ namespace AbstractShooter.States
             GameInstance.Score = 0;
             Multiplier = 1;
         }
-        public void checkPlayerDeath()
+        ///Generates a random location for the enemy to spawn where you can't see, within levels boundaries
+        public Vector2 RandomLocation()
         {
-            List<AEnemy> asd = new List<AEnemy>();
-            foreach (APlayer play in StateManager.currentState.GetAllActorsOfClass<APlayer>())
+            float newX = 0;
+            float newY = 0;
+            //Avoids infinite attempts in case the map is too small.
+            int counter = 0;
+
+            while (counter < 40 &&
+                (newX < ((Level)StateManager.currentState).grid.NodeSize
+                || newX > (((Level)StateManager.currentState).grid.GridWidth - 3) * ((Level)StateManager.currentState).grid.NodeSize
+                || newY < ((Level)StateManager.currentState).grid.NodeSize
+                || newY > (((Level)StateManager.currentState).grid.GridHeight - 3) * ((Level)StateManager.currentState).grid.NodeSize))
             {
-                if (play.Invincibility <= 0)
+                int RandSide = rand.Next(0, 4);
+                float RandPosition = rand.Next(-50, 51) / 100.0f; //Rand between -0.5 and 0.5
+                
+                List<APlayerActor> players = StateManager.currentState.GetAllActorsOfType<APlayerActor>();
+
+                if (players.Count > 0) //To improve
                 {
-                    foreach (AEnemy enemy in StateManager.currentState.GetAllActorsOfClass<AEnemy>())
+                    if (RandSide == 0) //Spawn from left of player
                     {
-                        if (enemy.RootComponent.IsInViewport && enemy.SpriteComponent.IsCircleColliding(play.RootComponent.WorldCenter, play.RootComponent.CollisionRadius))
-                        {
-                            EffectsManager.AddFlakesEffect(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity / 1, enemy.GetColor());
-                            EffectsManager.AddExplosion(enemy.RootComponent.WorldCenter, enemy.RootComponent.localVelocity / 1, Color.White);
-
-                            asd.Add(enemy);
-                            enemy.Destroy();
-
-                            addScore(0);
-                            SoundsManager.PlayKill();
-                            play.Hit();
-                            play.ResetLocation();
-                            //SoundsManager.PlaySpawn();
-                            Multiplier = 1;
-                            //Clean every weapon, shot and powerup that is in the current scene.
-                            List<AMine> mines = StateManager.currentState.GetAllActorsOfClass<AMine>();
-                            foreach (AMine mine in mines)
-                            {
-                                mine.Destroy();
-                            }
-                            List<APowerUp> powerUps = StateManager.currentState.GetAllActorsOfClass<APowerUp>();
-                            foreach (APowerUp powerUp in powerUps)
-                            {
-                                powerUp.Destroy();
-                            }
-                            List<AProjectile> projectiles = StateManager.currentState.GetAllActorsOfClass<AProjectile>();
-                            foreach (AProjectile projectile in projectiles)
-                            {
-                                projectile.Destroy();
-                            }
-                            //To clear smog
-                            WeaponsAndFireManager.CurrentWeaponType = WeaponsAndFireManager.WeaponType.Normal;
-                            WeaponsAndFireManager.WeaponSpeed = WeaponsAndFireManager.WeaponSpeedOriginal;
-                            WeaponsAndFireManager.shotMinTimer = WeaponsAndFireManager.shotMinTimerOriginal;
-                            break;
-                        }
+                        newX = players[0].WorldLocation.X - (Camera.ViewPortWidth / 2) - 45;
+                        newY = players[0].WorldLocation.Y + (Camera.ViewPortHeight * RandPosition);
+                    }
+                    else if (RandSide == 1) //Spawn from right of player
+                    {
+                        newX = players[0].WorldLocation.X + (Camera.ViewPortWidth / 2) + 45;
+                        newY = players[0].WorldLocation.Y + (Camera.ViewPortHeight * RandPosition);
+                    }
+                    else if (RandSide == 2) //Spawn from top of player
+                    {
+                        newX = players[0].WorldLocation.X + (Camera.ViewPortWidth * RandPosition);
+                        newY = players[0].WorldLocation.Y - (Camera.ViewPortHeight / 2) - 30;
+                    }
+                    else //if (RandSide == 3) //Spawn from bottom of player
+                    {
+                        newX = players[0].WorldLocation.X + (Camera.ViewPortWidth * RandPosition);
+                        newY = players[0].WorldLocation.Y + (Camera.ViewPortHeight / 2) + 30;
                     }
                 }
-                if (play.Lives <= 0)
-                {
-                    StateManager.CreateAndSetState<States.GameOver>();
-                    //BinaryWriter
-                    if (Endless)
-                    {
-                        SaveManager.Save();
-                    }
-                }
+                counter++;
             }
+
+            return new Vector2(newX, newY);
         }
-
-#if (DEBUG)
-        private double fps;
-#endif
-        public void DrawUI()
+        public void AddEnemy(Vector2 squareLocation, int type, int currentDifficulty)
         {
-            float stringScale = 0.545F;
-            string stringToDraw = "Score: " + GetScore().ToString();
-            Vector2 stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
+            int startX = (int)squareLocation.X;
+            int startY = (int)squareLocation.Y;
+            Rectangle squareRect = grid.SquareWorldRectangle(startX, startY).GetRectangle();
 
-            Game1.spriteBatch.DrawString(Game1.defaultFont,
-                stringToDraw,
-                new Vector2(1102 * Game1.resolutionScale, 5 * Game1.resolutionScale),
-                Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+            int speed = 63;
+            if (currentDifficulty == 1)
+                speed = 63;
+            else if (currentDifficulty == 2)
+                speed = 70;
+            else if (currentDifficulty == 3)
+                speed = 79;
+            else if (currentDifficulty == 4)
+                speed = 83;
+            else if (currentDifficulty == 5)
+                speed = 98;
 
-#if (DEBUG)
-            if (fps.ToString().Length > 3)
-                stringToDraw = fps.ToString().Remove(3);
+            //ASkeletalEnemy newEnemy = new ASkeletalEnemy(squareLocation, speed);
+            if (rand.Next(0, 5) == 4)
+            {
+                AEnemyWandererActor newEnemy = new AEnemyWandererActor(squareLocation, type, speed);
+                newEnemy.Lives += 3 * (currentDifficulty - 1);
+            }
             else
-                stringToDraw = fps.ToString();
-            stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * 0.8F;
-            Game1.spriteBatch.DrawString(Game1.defaultFont,
-                stringToDraw,
-                new Vector2(1111 * Game1.resolutionScale, 58.5F * Game1.resolutionScale),
-                Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * 0.8F, SpriteEffects.None, 0);
-#endif
-            stringToDraw = "Multiplier: " + Multiplier;
-            stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
-            Game1.spriteBatch.DrawString(Game1.defaultFont,
-                stringToDraw,
-                new Vector2(17 * Game1.resolutionScale, 5 * Game1.resolutionScale),
-                Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
-
-            if (!Endless)
             {
-                stringToDraw = "Time : " + (int)TimeLeft;
-                if (TimeLeft >= 100)
-                {
-                    stringSize = Game1.defaultFont.MeasureString("Time : 999") * Game1.defaultFontScale * stringScale;
-                }
-                else
-                {
-                    stringSize = Game1.defaultFont.MeasureString("Time : 99") * Game1.defaultFontScale * stringScale;
-                }
-                Game1.spriteBatch.DrawString(Game1.defaultFont,
-                    stringToDraw,
-                    new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.resolutionScale)), 5 * Game1.resolutionScale),
-                Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
-            }
-
-            stringToDraw = "Mines: " + WeaponsAndFireManager.minesNumber;
-            stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
-            Game1.spriteBatch.DrawString(Game1.defaultFont,
-                stringToDraw,
-                new Vector2(17 * Game1.resolutionScale, 690 * Game1.resolutionScale),
-                Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
-
-            List<APlayer> player = StateManager.currentState.GetAllActorsOfClass<APlayer>();
-            if (NOfPlayers == 1 && player.Count == 1)
-            {
-                stringToDraw = "Lives: " + player[0].Lives;
-                stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
-                Game1.spriteBatch.DrawString(Game1.defaultFont,
-                    stringToDraw,
-                    new Vector2(1154 * Game1.resolutionScale, 690 * Game1.resolutionScale),
-                    Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
-            }
-            else if (NOfPlayers == 2 && player.Count == 2)
-            {
-                stringToDraw = "Lives: " + StateManager.currentState.GetAllActorsOfClass<APlayer>()[0].Lives + "/" + StateManager.currentState.GetAllActorsOfClass<APlayer>()[1].Lives;
-                stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
-                Game1.spriteBatch.DrawString(Game1.defaultFont,
-                    stringToDraw,
-                    new Vector2(1104 * Game1.resolutionScale, 690 * Game1.resolutionScale),
-                    Color.WhiteSmoke, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+                AEnemySeekerActor newEnemy = new AEnemySeekerActor(squareLocation, type, speed);
+                newEnemy.Lives += 3 * (currentDifficulty - 1);
             }
         }
     }

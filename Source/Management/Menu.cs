@@ -9,9 +9,9 @@ namespace AbstractShooter
     public class Menu
     {
         public List<MenuEntry> Choices;
-        public int CurrentChoiceIndex = 0;
-        public Menu Parent = null;
-        public Menu Child = null;
+        public int CurrentChoiceIndex;
+        public Menu Parent;
+        public Menu Child;
         public Color selectedColor = Color.White;
         public Color unselectedColor = Color.Black;
         public Texture2D BackgorundScreen;
@@ -65,6 +65,7 @@ namespace AbstractShooter
                 Parent.Child = null;
                 return true;
             }
+            StateManager.Unpause();
             return false;
         }
         public bool SubNext()
@@ -107,6 +108,14 @@ namespace AbstractShooter
                 CurrentChoiceIndex = Choices.Count - 1;
             return Choices != null && Choices.Count > 1;
         }
+        public void Reset()
+        {
+            if (Child != null)
+            {
+                Child.Reset();
+            }
+            CurrentChoiceIndex = 0;
+        }
         public void Draw()
         {
             if (Child != null)
@@ -117,19 +126,16 @@ namespace AbstractShooter
 
             if (BackgorundScreen != null)
             {
-                Game1.spriteBatch.Draw(
-                    BackgorundScreen,
-                    new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY),
-                    Color.White);
+                Game1.spriteBatch.Draw(BackgorundScreen, new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY), Color.White);
             }
 
             for (int i = 0; i < Choices.Count; ++i)
             {
                 string tempName = Choices[i].SubChoices[Choices[i].CurrentSubChoiceIndex].Name;
-                Color tempColor;
+                Color drawColor;
                 if (i == CurrentChoiceIndex)
                 {
-                    tempColor = Color.Fuchsia;
+                    drawColor = selectedColor;
                     if (Choices[i].SubChoices.Count > 1)
                     {
                         tempName = "< " + tempName + " >";
@@ -137,10 +143,10 @@ namespace AbstractShooter
                 }
                 else
                 {
-                    tempColor = Color.Black;
+                    drawColor = unselectedColor;
                 }
                 Vector2 stringSize = Game1.smallerFont.MeasureString(tempName) * Game1.defaultFontScale * StringScale;
-                Game1.spriteBatch.DrawString(Game1.smallerFont, tempName, new Vector2((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.resolutionScale), (StartingYAlpha + (YAlphaBetweenLines * i)) * Game1.curResolutionY), tempColor, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * StringScale, SpriteEffects.None, 0);
+                Game1.spriteBatch.DrawString(Game1.smallerFont, tempName, new Vector2((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale), (StartingYAlpha + (YAlphaBetweenLines * i)) * Game1.curResolutionY), drawColor, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * StringScale, SpriteEffects.None, 0);
             }
 
             DrawMenu();
@@ -177,8 +183,8 @@ namespace AbstractShooter
     }
     public class MenuEntryChoice
     {
-        public Menu Owner = null;
-        public Menu Child = null;
+        public Menu Owner;
+        public Menu Child;
         public virtual string Name { get { return ""; } }
         public virtual void Enter()
         {

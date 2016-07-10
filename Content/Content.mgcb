@@ -163,3 +163,9 @@
 /processorParam:TextureFormat=Compressed
 /build:Fonts/Font2.spritefont
 
+#begin Fonts/ReadableFont.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts/ReadableFont.spritefont
+

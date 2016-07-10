@@ -8,7 +8,7 @@ using AbstractShooter.States;
 
 namespace AbstractShooter
 {
-    public class AEnemyWanderer : AEnemy
+    public class AEnemyWandererActor : AEnemyActor
     {
         private static Random rand = new Random();
         private int type;
@@ -16,14 +16,14 @@ namespace AbstractShooter
         private float rotationSpeed;
         private int FollowingPlayerN;
 
-        public AEnemyWanderer(Vector2 worldLocation, int newType, int newSpeed)
+        public AEnemyWandererActor(Vector2 worldLocation, int newType, int newSpeed)
             : base(StateManager.currentState.spriteSheet, new List<Rectangle> { new Rectangle(0, 250, 32, 32) }, ComponentUpdateGroup.AfterActor, DrawGroup.Characters, worldLocation, true)
         {
             type = newType;
             Lives = 5;
             if (type == 6) //Pink Circle
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 250, 32, 32) },
                     null,
@@ -35,7 +35,7 @@ namespace AbstractShooter
             }
             else if (type == 5) //Orange Pinwheel
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(34, 288, 32, 32) },
                     null,
@@ -46,7 +46,7 @@ namespace AbstractShooter
             }
             else if (type == 4) //Violet Star
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 288, 32, 32) },
                     null,
@@ -58,7 +58,7 @@ namespace AbstractShooter
             }
             else if (type == 3) //Yellow Triangle
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(8, 231, 18, 18) },
                     null,
@@ -70,7 +70,7 @@ namespace AbstractShooter
             }
             else if (type == 2) //Green Square
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 194, 32, 32),
                         new Rectangle(32, 194, 32, 32),
@@ -95,7 +95,7 @@ namespace AbstractShooter
             }
             else //if (type == 1) //Sky blue diamond
             {
-                spriteComponent = new AnimatedSpriteComponent(this,
+                spriteComponent = new CAnimatedSpriteComponent(this,
                     StateManager.currentState.spriteSheet,
                     new List<Rectangle> { new Rectangle(0, 161, 32, 32),
                         new Rectangle(32, 161, 32, 32),
@@ -113,7 +113,10 @@ namespace AbstractShooter
                 spriteComponent.GenerateDefaultAnimation(0.1F);
             }
             rootComponent = spriteComponent;
-            AddComponent(new ScalingBehaveComponent(this));
+            spriteComponent.collisionGroup = (int)ComponentCollisionGroup.Character;
+            spriteComponent.overlappingGroups = ComponentCollisionGroup.Character | ComponentCollisionGroup.Static | ComponentCollisionGroup.Weapon;
+
+            AddComponent(new CScalingBehaveComponent(this));
 
             ObjectSpeed = newSpeed * ((float)rand.Next(49, 305) / 100.0f);
 
@@ -124,8 +127,8 @@ namespace AbstractShooter
             FollowingPlayerN = rand.Next(0, ((Level)StateManager.currentState).GetNOfPlayers());
             
             WorldScale = 1.135f;
-            
-            determineMoveDirection();
+
+            DetermineMoveDirection();
         }
 
         public override Color GetColor()
@@ -155,9 +158,9 @@ namespace AbstractShooter
         }
         protected override void CollidedWithWorldBorders()
         {
-            determineMoveDirection();
+            DetermineMoveDirection();
         }
-        private new void determineMoveDirection()
+        protected override void DetermineMoveDirection()
         {
             ObjectAngle = new Vector2(rand.Next(-10, 11), rand.Next(-10, 11));
             ObjectAngle.Normalize();

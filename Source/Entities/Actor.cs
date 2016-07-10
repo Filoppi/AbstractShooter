@@ -1,6 +1,4 @@
-﻿using AbstractShooter.States;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,10 +20,10 @@ namespace AbstractShooter
 
     public abstract class AActor
     {
-        protected SceneComponent rootComponent; //SceneComponents; no list is driectly stored
-        public SceneComponent RootComponent { get { return rootComponent; } }
-        protected List<Component> components = new List<Component>(); //Other components that are not SceneComponent
-        public List<Component> Components { get { return components; } }
+        protected CSceneComponent rootComponent; //SceneComponents; no list is driectly stored
+        public CSceneComponent RootComponent { get { return rootComponent; } }
+        protected List<CComponent> components = new List<CComponent>(); //Other components that are not CSceneComponent
+        public List<CComponent> Components { get { return components; } }
 
         private ActorUpdateGroup updateGroup = ActorUpdateGroup.Default;
         public ActorUpdateGroup UpdateGroup { get { return updateGroup; } }
@@ -35,12 +33,28 @@ namespace AbstractShooter
         private bool pendingDestroy;
         public bool PendingDestroy { get { return pendingDestroy; } }
 
+        private int uniqueId = -1;
+        private bool isUniqueIdSet;
+        public int UniqueId
+        {
+            set
+            {
+                if (!isUniqueIdSet)
+                {
+                    isUniqueIdSet = true;
+                    uniqueId = value;
+                    UpdateDrawGroupDepth();
+                }
+            }
+        }
+        public float drawGroupDepth;
+
         public AActor(ActorUpdateGroup updateGroup = ActorUpdateGroup.Default)
         {
             this.updateGroup = updateGroup;
             StateManager.currentState.RegisterActor(this);
         }
-        public AActor(ref SceneComponent rootComponent, ActorUpdateGroup updateGroup = ActorUpdateGroup.Default)
+        public AActor(ref CSceneComponent rootComponent, ActorUpdateGroup updateGroup = ActorUpdateGroup.Default)
         {
             this.updateGroup = updateGroup;
             this.rootComponent = rootComponent;
@@ -66,8 +80,8 @@ namespace AbstractShooter
                 }
 
                 //Destroy all left components of the level that have this actor as owner
-                List<SceneComponent> sceneComponents = StateManager.currentState.GetAllSceneComponents();
-                foreach (SceneComponent sceneComponent in sceneComponents)
+                List<CSceneComponent> sceneComponents = StateManager.currentState.GetAllSceneComponents();
+                foreach (CSceneComponent sceneComponent in sceneComponents)
                 {
                     if (sceneComponent.Owner == this)
                     {
@@ -76,7 +90,7 @@ namespace AbstractShooter
                 }
 
                 //Destroy all logical components
-                foreach (Component component in components.ToList())
+                foreach (CComponent component in components.ToList())
                 {
                     component.Destroy();
                 }
@@ -86,19 +100,24 @@ namespace AbstractShooter
             return false;
         }
 
-        public List<SceneComponent> GetSceneComponents()
+        public void UpdateDrawGroupDepth()
         {
-            List<SceneComponent> sceneComponents = new List<SceneComponent>();
+            drawGroupDepth = (uniqueId % State.maxUniqueDrawDepthActors) * State.componentsDrawDepthDelta;
+        }
+
+        public List<CSceneComponent> GetSceneComponents()
+        {
+            List<CSceneComponent> sceneComponents = new List<CSceneComponent>();
             rootComponent?.GetAllDescendantsAndSelf(ref sceneComponents);
             return sceneComponents;
         }
-        public List<T> GetSceneComponentsByClass<T>() where T : SceneComponent
+        public List<T> GetSceneComponentsByClass<T>() where T : CSceneComponent
         {
             List<T> sceneComponents = new List<T>();
             rootComponent?.GetAllDescendantsAndSelf<T>(ref sceneComponents);
             return sceneComponents;
         }
-        public void GetSceneComponents(ref List<SceneComponent> sceneComponents)
+        public void GetSceneComponents(ref List<CSceneComponent> sceneComponents)
         {
             if (rootComponent != null)
             {
@@ -109,11 +128,11 @@ namespace AbstractShooter
                 throw new System.ArgumentException("rootComponent is null");
             }
         }
-        public bool ContainsComponent(Component component)
+        public bool ContainsComponent(CComponent component)
         {
             return components.Contains(component);
         }
-        public bool ContainsSceneComponent(SceneComponent sceneComponent)
+        public bool ContainsSceneComponent(CSceneComponent sceneComponent)
         {
             if (sceneComponent != null)
             {
@@ -121,7 +140,7 @@ namespace AbstractShooter
             }
             return false;
         }
-        public void AddComponent(Component component)
+        public void AddComponent(CComponent component)
         {
             if (!components.Contains(component))
             {
@@ -129,11 +148,11 @@ namespace AbstractShooter
             }
         }
 
-        public bool RemoveComponent(Component component)
+        public bool RemoveComponent(CComponent component)
         {
             return components.Remove(component);
         }
-        public bool RemoveSceneComponent(SceneComponent sceneComponent)
+        public bool RemoveSceneComponent(CSceneComponent sceneComponent)
         {
             if (sceneComponent != null)
             {
@@ -154,7 +173,7 @@ namespace AbstractShooter
             }
             return false;
         }
-        public bool SetRootComponent(SceneComponent component)
+        public bool SetRootComponent(CSceneComponent component)
         {
             if (rootComponent == null && component != null)
             {
@@ -164,24 +183,25 @@ namespace AbstractShooter
             }
             return false;
         }
-        public bool AttachSceneComponent(SceneComponent component)
+        public bool AttachSceneComponent(CSceneComponent component)
         {
             return component.AttachToActor(this, true);
         }
 
-        public List<AActor> GetCollidingActors()
+        public List<AActor> GetOverlappingActors()
         {
-            List<AActor> actors = new List<AActor>();
-            foreach (SceneComponent sceneComponent in GetSceneComponents())
+            List<AActor> overlappingActors = new List<AActor>();
+            foreach (CSceneComponent sceneComponent in GetSceneComponents())
             {
-                actors.AddRange(sceneComponent.overlappingActors);
+                overlappingActors.AddRange(sceneComponent.GetOverlappingActors());
             }
-            return actors.Distinct().ToList();
+            return overlappingActors.Distinct().ToList();
         }
-        public List<AActor> GetUpdatedCollidingActors()
+        public virtual void BeginActorOverlap(AActor otherActor)
         {
-            //Recalculate collisions
-            return GetCollidingActors();
+        }
+        public virtual void EndActorBeginOverlap(AActor otherActor)
+        {
         }
 
         public float GetMass()
@@ -212,7 +232,7 @@ namespace AbstractShooter
         {
             if (isComponentsUpdateEnabled)
             {
-                foreach (Component component in components.ToList())
+                foreach (CComponent component in components.ToList())
                 {
                     component.Update(gameTime, updateGroup);
                 }
@@ -234,130 +254,6 @@ namespace AbstractShooter
             {
                 rootComponent?.DrawDescendantsAndSelf();
             }
-        }
-    }
-
-    public class AScene : AActor
-    {
-        public AScene()
-        {
-            rootComponent = new SceneComponent(this);
-        }
-    }
-
-    public class ASprite : AActor
-    {
-        protected SpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public SpriteComponent SpriteComponent { get { return spriteComponent; } }
-        public ASprite(Texture2D texture, List<Rectangle> frames,
-            ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Default,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
-            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color tintColor = new Color())
-            : base(actorUpdateGroup)
-        {
-            spriteComponent = new SpriteComponent(this, texture, frames, null, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor);
-            rootComponent = spriteComponent;
-        }
-
-        protected override void UpdateActor(GameTime gameTime)
-        {
-            //((Level)StateManager.currentState).grid.Influence(rootComponent.WorldCenter, gravity);
-            //Get Gravity Centre by summing up all SceneComponents Weights
-            ((Level)StateManager.currentState).grid.Influence(rootComponent.WorldLocation, 300F * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale * rootComponent.localVelocity.Length()); //Should be WorldCenter, not location
-        }
-    }
-
-    public class AAnimatedSprite : AActor
-    {
-        protected AnimatedSpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public AnimatedSpriteComponent SpriteComponent { get { return spriteComponent; } }
-        public AAnimatedSprite(Texture2D texture, List<Rectangle> frames,
-            ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Default,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
-            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color tintColor = new Color())
-            : base(actorUpdateGroup)
-        {
-            spriteComponent = new AnimatedSpriteComponent(this, texture, frames, null, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor);
-            rootComponent = spriteComponent;
-            spriteComponent.GenerateDefaultAnimation();
-        }
-
-        protected override void UpdateActor(GameTime gameTime)
-        {
-            //((Level)StateManager.currentState).grid.Influence(rootComponent.WorldCenter, gravity);
-            //Get Gravity Centre by summing up all SceneComponents Weights
-            ((Level)StateManager.currentState).grid.Influence(rootComponent.WorldLocation, 300F * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale * rootComponent.localVelocity.Length()); //Should be WorldCenter, not location
-        }
-    }
-
-    public class ATemporarySprite : AActor
-    {
-        protected TemporarySpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public TemporarySpriteComponent SpriteComponent { get { return spriteComponent; } }
-        public ATemporarySprite(Texture2D texture, List<Rectangle> frames,
-            float remainingDuration, float startFlashingAtRemainingTime,
-            ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Default,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
-            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color initialColor = new Color(), Color finalColor = new Color())
-            : base(actorUpdateGroup)
-        {
-            spriteComponent = new TemporarySpriteComponent(this, texture, frames, remainingDuration, startFlashingAtRemainingTime, null, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, initialColor, finalColor);
-            rootComponent = spriteComponent;
-        }
-    }
-
-    public class APowerUp : AActor
-    {
-        protected TemporarySpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public TemporarySpriteComponent SpriteComponent { get { return spriteComponent; } }
-        public APowerUp(Texture2D texture, List<Rectangle> frames,
-            float remainingDuration, float startFlashingAtRemainingTime,
-            ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Weapons,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
-            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color initialColor = new Color(), Color finalColor = new Color())
-            : base(actorUpdateGroup)
-        {
-            spriteComponent = new TemporarySpriteComponent(this, texture, frames, remainingDuration, startFlashingAtRemainingTime, null, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, initialColor, finalColor);
-            rootComponent = spriteComponent;
-        }
-    }
-
-    public class AMine : AActor
-    {
-        protected AnimatedSpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public AnimatedSpriteComponent SpriteComponent { get { return spriteComponent; } }
-        public AMine(Texture2D texture, List<Rectangle> frames,
-            ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Weapons,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
-            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color tintColor = new Color())
-            : base(actorUpdateGroup)
-        {
-            spriteComponent = new AnimatedSpriteComponent(this, texture, frames, null, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor);
-            rootComponent = spriteComponent;
-            spriteComponent.GenerateDefaultAnimation();
-        }
-
-        protected override void UpdateActor(GameTime gameTime)
-        {
-            //((Level)StateManager.currentState).grid.Influence(rootComponent.WorldCenter, gravity);
-            //Get Gravity Centre by summing up all SceneComponents Weights
-            ((Level)StateManager.currentState).grid.Influence(rootComponent.WorldLocation, 300F * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale * rootComponent.localVelocity.Length()); //Should be WorldCenter, not location
-        }
-    }
-
-    public class AProjectile : AActor
-    {
-        protected TemporarySpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public TemporarySpriteComponent SpriteComponent { get { return spriteComponent; } }
-        public AProjectile(Texture2D texture, List<Rectangle> frames,
-            float remainingDuration, float startFlashingAtRemainingTime,
-            ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Weapons,
-            ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
-            Vector2 location = new Vector2(), bool isLocationWorld = false, float relativeScale = 1F, Vector2 acceleration = new Vector2(), float maxSpeed = -1, Color initialColor = new Color(), Color finalColor = new Color())
-            : base(actorUpdateGroup)
-        {
-            spriteComponent = new TemporarySpriteComponent(this, texture, frames, remainingDuration, startFlashingAtRemainingTime, null, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, initialColor, finalColor);
-            rootComponent = spriteComponent;
         }
     }
 }

@@ -11,11 +11,17 @@ namespace AbstractShooter
         public Texture2D spriteSheet;
         private List<AActor> actors, actorsToRegisterUpdate, actorsToUnregisterUpdate;
         private List<WeakReference<AActor>>[] actorsUpdateGroups;
-        private List<WeakReference<SceneComponent>> sceneComponents; //This is just kept for performance and comfort reasons
-        private AScene scene; //Holds all the components that do not need to be in a specific actor (e.g. particle fx)
-        public AScene Scene { get { return scene; } }
+        private int spawnedActorsCount = 0;
+        private List<WeakReference<CSceneComponent>> sceneComponents; //This is just kept for performance and comfort reasons
+        private ASceneActor scene; //Holds all the components that do not need to be in a specific actor (e.g. particle fx)
+        public ASceneActor Scene { get { return scene; } }
         private float timeScale = 1;
         public float TimeScale { get { return timeScale; } set { timeScale = value; } }
+        private const float actorsDrawDepthDelta = 0.05F;
+        public const float componentsDrawDepthDelta = 0.00005F;
+        public const float componentsDrawDepthMultiplier = 0.0000001F;
+        public const float maxUniqueDrawDepthComponents = (int)(componentsDrawDepthDelta / componentsDrawDepthMultiplier);
+        public const int maxUniqueDrawDepthActors = (int)(actorsDrawDepthDelta / componentsDrawDepthDelta);
 
         private bool iteratingActors;
         public bool IteratingActors { get { return iteratingActors; } }
@@ -27,14 +33,14 @@ namespace AbstractShooter
             {
                 actorsUpdateGroups[i] = new List<WeakReference<AActor>>();
             }
-            sceneComponents = new List<WeakReference<SceneComponent>>();
+            sceneComponents = new List<WeakReference<CSceneComponent>>();
             actors = new List<AActor>();
             actorsToRegisterUpdate = new List<AActor>();
             actorsToUnregisterUpdate = new List<AActor>();
-            scene = new AScene();
+            scene = new ASceneActor();
         }
 
-#region Actors
+        #region Actors
         public void RegisterActor(AActor actor)
         {
             if (!actors.Contains(actor))
@@ -46,6 +52,8 @@ namespace AbstractShooter
                     if (!actorsToRegisterUpdate.Contains(actor))
                     {
                         actorsToRegisterUpdate.Add(actor);
+                        actor.UniqueId = spawnedActorsCount;
+                        spawnedActorsCount++;
                     }
                     else
                     {
@@ -55,6 +63,8 @@ namespace AbstractShooter
                 else
                 {
                     RegisterActorUpdate(actor);
+                    actor.UniqueId = spawnedActorsCount;
+                    spawnedActorsCount++;
                 }
             }
             else
@@ -76,7 +86,14 @@ namespace AbstractShooter
                 {
                     if (!actorsToUnregisterUpdate.Contains(actor))
                     {
-                        actorsToUnregisterUpdate.Add(actor);
+                        if (actorsToRegisterUpdate.Contains(actor)) //In case it is destroyed before actually spawning, don't even spawn it
+                        {
+                            actorsToRegisterUpdate.Remove(actor);
+                        }
+                        else
+                        {
+                            actorsToUnregisterUpdate.Add(actor);
+                        }
                     }
                     else
                     {
@@ -117,7 +134,7 @@ namespace AbstractShooter
         {
             return actors.ToList();
         }
-        public List<T> GetAllActorsOfClass<T>() where T : AActor
+        public List<T> GetAllActorsOfType<T>() where T : AActor
         {
             List<T> foundActors = new List<T>();
             foreach (T actor in actors.OfType<T>())
@@ -126,25 +143,25 @@ namespace AbstractShooter
             }
             return foundActors;
         }
-#endregion
+        #endregion
 
         #region SceneComponents
-        public void AddSceneComponent(SceneComponent sceneComponent)
+        public void AddSceneComponent(CSceneComponent sceneComponent)
         {
-            if (!sceneComponents.Contains(new WeakReference<SceneComponent>(sceneComponent)))
+            if (!sceneComponents.Contains(new WeakReference<CSceneComponent>(sceneComponent)))
             {
-                sceneComponents.Add(new WeakReference<SceneComponent>(sceneComponent));
+                sceneComponents.Add(new WeakReference<CSceneComponent>(sceneComponent));
             }
             else
             {
                 throw new System.ArgumentException("SceneComponents was already contained in sceneComponents list");
             }
         }
-        public void RemoveSceneComponent(SceneComponent sceneComponent)
+        public void RemoveSceneComponent(CSceneComponent sceneComponent)
         {
             for (int i = 0; i < sceneComponents.Count; ++i)
             {
-                SceneComponent weakTarget;
+                CSceneComponent weakTarget;
                 if (sceneComponents[i].TryGetTarget(out weakTarget))
                 {
                     if (weakTarget == sceneComponent)
@@ -156,12 +173,12 @@ namespace AbstractShooter
             }
             throw new System.ArgumentException("sceneComponent was not contained in sceneComponents list");
 
-            //if (!sceneComponents.Remove(new WeakReference<SceneComponent>(sceneComponent)))
+            //if (!sceneComponents.Remove(new WeakReference<CSceneComponent>(sceneComponent)))
             //{
             //    throw new System.ArgumentException("sceneComponent was not contained in sceneComponents list");
             //}
         }
-        public List<T> GetAllSceneComponentsOfClass<T>() where T : SceneComponent
+        public List<T> GetAllSceneComponentsOfType<T>() where T : CSceneComponent
         {
             List<T> foundSceneComponents = new List<T>();
             foreach (WeakReference<T> weakSceneComponentRef in sceneComponents.OfType<WeakReference<T>>())
@@ -174,12 +191,12 @@ namespace AbstractShooter
             }
             return foundSceneComponents;
         }
-        public List<SceneComponent> GetAllSceneComponents()
+        public List<CSceneComponent> GetAllSceneComponents()
         {
-            List<SceneComponent> foundSceneComponents = new List<SceneComponent>();
-            foreach (WeakReference<SceneComponent> weakSceneComponentRef in sceneComponents)
+            List<CSceneComponent> foundSceneComponents = new List<CSceneComponent>();
+            foreach (WeakReference<CSceneComponent> weakSceneComponentRef in sceneComponents)
             {
-                SceneComponent sceneComponentRef;
+                CSceneComponent sceneComponentRef;
                 if (weakSceneComponentRef.TryGetTarget(out sceneComponentRef))
                 {
                     foundSceneComponents.Add(sceneComponentRef);
@@ -187,11 +204,8 @@ namespace AbstractShooter
             }
             return foundSceneComponents;
         }
-        /// <summary>
         /// Deprecated. Should be the same as GetAllSceneComponents()
-        /// </summary>
-        /// <returns></returns>
-        public List<T> GetAllSceneComponentsFromActors<T>() where T : SceneComponent
+        public List<T> GetAllSceneComponentsFromActorsOfType<T>() where T : CSceneComponent
         {
             List<T> foundSceneComponents = new List<T>();
             foreach (AActor actor in actors)
@@ -200,42 +214,36 @@ namespace AbstractShooter
             }
             return foundSceneComponents;
         }
-        /// <summary>
         /// Deprecated. Should be the same as GetAllSceneComponents<T>()
-        /// </summary>
-        /// <returns></returns>
-        public List<SceneComponent> GetAllSceneComponentsFromActors()
+        public List<CSceneComponent> GetAllSceneComponentsFromActors()
         {
-            List<SceneComponent> foundSceneComponents = new List<SceneComponent>();
+            List<CSceneComponent> foundSceneComponents = new List<CSceneComponent>();
             foreach (AActor actor in actors)
             {
                 foundSceneComponents.AddRange(actor.GetSceneComponents());
             }
             return foundSceneComponents;
         }
-#endregion
+        #endregion
+
+        public virtual void OnSetAsCurrentState() { }
 
         public virtual void Update(GameTime gameTime)
         {
             iteratingActors = true;
 
-            for (int i = 0; i < actorsUpdateGroups.Length; ++i)
+            //Pre-Physics
+            for (int i = 0; i < actorsUpdateGroups.Length - 2; ++i)
             {
-                for (int k = 0; k < actorsUpdateGroups[i].Count; ++k)
-                {
-                    AActor actor;
-                    if (actorsUpdateGroups[i][k].TryGetTarget(out actor))
-                    {
-                        if (!actor.PendingDestroy)
-                        {
-                            actor.Update(gameTime);
-                        }
-                    }
-                    else
-                    {
-                        throw new System.ArgumentException("Actor weak reference is not valid. This reference should have been removed already");
-                    }
-                }
+                UpdateActorsGroup(gameTime, i);
+            }
+
+            UpdatePhysics(gameTime);
+
+            //Post-Physics
+            for (int i = actorsUpdateGroups.Length - 3; i < actorsUpdateGroups.Length; ++i)
+            {
+                UpdateActorsGroup(gameTime, i);
             }
 
             iteratingActors = false;
@@ -255,7 +263,50 @@ namespace AbstractShooter
             actorsToRegisterUpdate.Clear();
         }
 
+        public virtual void UpdatePhysics(GameTime gameTime)
+        {
+            
+        }
+
+        public virtual void UpdateActorsGroup(GameTime gameTime, int i)
+        {
+            for (int k = 0; k < actorsUpdateGroups[i].Count; ++k)
+            {
+                AActor actor;
+                if (actorsUpdateGroups[i][k].TryGetTarget(out actor))
+                {
+                    if (!actor.PendingDestroy)
+                    {
+                        actor.Update(gameTime);
+                    }
+                }
+                else
+                {
+                    throw new System.ArgumentException("Actor weak reference is not valid. This reference should have been removed already");
+                }
+            }
+        }
+
+        public virtual void BeginDraw()
+        {
+            Game1.Get.GraphicsDevice.SetRenderTarget(null);
+            Game1.Get.GraphicsDevice.Clear(Color.Black);
+            Game1.spriteBatch.Begin();
+        }
+        public virtual void EndDraw()
+        {
+#if DEBUG
+            Game1.DrawDebugStrings();
+#endif
+            Game1.spriteBatch.End();
+        }
         public virtual void Draw()
+        {
+            BeginDraw();
+            DrawActors();
+            EndDraw();
+        }
+        public virtual void DrawActors()
         {
             foreach (AActor actor in actors)
             {

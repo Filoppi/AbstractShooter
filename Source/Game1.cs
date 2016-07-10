@@ -2,30 +2,63 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using BloomPostprocess;
 using InputManagement;
 
 namespace AbstractShooter
 {
+#if DEBUG
+    public struct DebugString
+    {
+        public string stringToPrint;
+        public float timeLeft;
+        public Color color;
+
+        public DebugString(string stringToPrint, float timeLeft = 0)
+        {
+            this.stringToPrint = stringToPrint;
+            this.timeLeft = timeLeft;
+            color = Color.Yellow;
+        }
+        public DebugString(string stringToPrint, Color color, float timeLeft = 0)
+        {
+            this.stringToPrint = stringToPrint;
+            this.timeLeft = timeLeft;
+            this.color = color;
+        }
+    }
+#endif
+
     /// <summary>
     /// This is the main type for your game.
     /// </summary>
     public class Game1 : Game
     {
+        //Singleton:
+        private static Game1 instance;
+        public static Game1 Get { get { return instance; } }
+
+        //Graphics:
         private static GraphicsDeviceManager graphicsDeviceManager;
         //private static RenderTarget2D renderTarget2D;
-        public const int minResolutionX = 1280;
-        public const int minResolutionY = 720;
-        private static int maxResolutionX = minResolutionX;
-        private static int maxResolutionY = minResolutionY;
-        public static int curResolutionX = minResolutionX;
-        public static int curResolutionY = minResolutionY;
-        public static float resolutionScale = 1F; //public get private set
-        public static bool shouldExit = false; //public set private get
-        public static bool isMaxResolution = false; //public get private set
-        public static bool isBorderless = false; //public get private set
-        private static bool isFullScreenAllowed = false;
-        public static bool isFullScreen = false; //public get private set
+        public const int defaultResolutionX = 1280;
+        public const int defaultResolutionY = 720;
+        public static int minResolutionX = defaultResolutionX / 2;
+        public static int minResolutionY = defaultResolutionY / 2;
+        private static int maxResolutionX = defaultResolutionX;
+        private static int maxResolutionY = defaultResolutionY;
+        public static int curResolutionX = defaultResolutionX;
+        public static int curResolutionY = defaultResolutionY;
+        private static float resolutionScale = 1F;
+        public static float ResolutionScale { get { return resolutionScale; } }
+        public static bool shouldExit; //public set private get
+        public static bool isMaxResolution; //public get private set
+        public static bool isBorderless; //public get private set
+        private static bool isFullScreenAllowed;
+        public static bool isFullScreen; //public get private set
+        public static bool isVSync; //public get private set
         private static bool justLaunched = true;
         private static System.Timers.Timer timer;
         public static SpriteFont defaultFont; //public get private set
@@ -35,14 +68,21 @@ namespace AbstractShooter
 
         public static Bloom bloom; //public get private set
         public static RenderTarget2D renderTarget1, renderTarget2;
+
 #if DEBUG
-        private static int bloomSettingsIndex = 0; //To remove
-#endif
-
+        private static List<DebugString> debugStrings = new List<DebugString>();
+        private static double[] fps = new double[60];
+        public static double fpsAverage;
+        public static SpriteFont debugFont; //public get private set
+        public static float debugFontScale = 0.5F; //public get private set
+        private static int bloomSettingsIndex; //To remove
         private static ActionBinding exitAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.Escape, KeyAction.Pressed) }, new KeyBinding<Buttons>[] { new KeyBinding<Buttons>(Buttons.Back, KeyAction.Pressed) });
-
-        private static Game1 instance;
-        public static Game1 Get { get { return instance; } }
+        private static ActionBinding resetCameraZoomAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.J, KeyAction.Down) }, new KeyBinding<Buttons>[] { });
+        private static ActionBinding zoomCameraAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.L, KeyAction.Down) }, new KeyBinding<Buttons>[] { });
+        private static ActionBinding unzoomCameraAction = new ActionBinding(new KeyBinding<Keys>[] { new KeyBinding<Keys>(Keys.K, KeyAction.Down) }, new KeyBinding<Buttons>[] { });
+        public static bool debugCollisions = false;
+        public static bool debugOverlapCollisions = false;
+#endif
 
         public Game1()
         {
@@ -59,12 +99,11 @@ namespace AbstractShooter
         /// </summary>
         protected override void Initialize()
         {
-
             SaveManager.Load();
 
             float FullScreenMonitorAspectRatio = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.AspectRatio;
             float currentMonitorAspectRatio = (float)System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Width / System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height;
-            float expectedAspectRatio = (float)minResolutionX / minResolutionY;
+            float expectedAspectRatio = (float)defaultResolutionX / defaultResolutionY;
             isFullScreenAllowed = FullScreenMonitorAspectRatio.Equals(expectedAspectRatio);
 
             if (currentMonitorAspectRatio > expectedAspectRatio)
@@ -83,16 +122,13 @@ namespace AbstractShooter
                 maxResolutionY = System.Windows.Forms.Screen.PrimaryScreen.WorkingArea.Height;
             }
 
-            graphicsDeviceManager.SynchronizeWithVerticalRetrace = false;
-            IsFixedTimeStep = false;
+            SetVSync(isVSync);
             Window.AllowUserResizing = false;
             graphicsDeviceManager.PreferredDepthStencilFormat = DepthFormat.Depth16;
 
             SetScreenState(isMaxResolution, isFullScreen, isBorderless);
             IsMouseVisible = true;
-
-            Camera.ChangeResolution(curResolutionX, curResolutionY);
-
+            
             bloom = new Bloom();
 
             base.Initialize();
@@ -106,6 +142,9 @@ namespace AbstractShooter
         {
             defaultFont = Content.Load<SpriteFont>(@"Fonts\Font1");
             smallerFont = Content.Load<SpriteFont>(@"Fonts\Font2");
+#if DEBUG
+            debugFont = Content.Load<SpriteFont>(@"Fonts\ReadableFont");
+#endif
 
             spriteBatch = new SpriteBatch(GraphicsDevice);
             SoundsManager.Initialize();
@@ -133,15 +172,47 @@ namespace AbstractShooter
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+#if (DEBUG)
+            fpsAverage = 0;
+            for (int i = 0; i < fps.Length - 1; i++)
+            {
+                fps[i] = fps[i+1];
+                fpsAverage += fps[i];
+            }
+            fps[fps.Length - 1] = 1 / gameTime.ElapsedGameTime.TotalSeconds;
+            fpsAverage += fps[fps.Length - 1];
+            fpsAverage /= fps.Length;
+            
+            for (int i = 0; i < debugStrings.Count; i++)
+            {
+                DebugString debugString = debugStrings[i];
+                debugString.timeLeft -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                debugStrings[i] = debugString;
+                if (debugString.timeLeft < 0)
+                {
+                    debugStrings.RemoveAt(i);
+                    i--;
+                }
+            }
+#endif
+
             InputManager.Update();
 
-            if (exitAction.CheckBindings() || shouldExit)
+#if DEBUG
+            if (exitAction.CheckBindings())
+            {
+                shouldExit = true;
+            }
+#endif
+            if (shouldExit)
             {
                 SaveManager.Save();
                 Exit();
+                return;
             }
+
 #if DEBUG
-            else if (InputManager.currentKeyboardState.IsKeyDown(Keys.F) && InputManager.previousKeyboardState.IsKeyUp(Keys.F))
+            if (InputManager.currentKeyboardState.IsKeyDown(Keys.F) && InputManager.previousKeyboardState.IsKeyUp(Keys.F))
             {
                 SetScreenState(isMaxResolution, !isFullScreen, isBorderless);
                 SaveManager.Save();
@@ -192,6 +263,18 @@ namespace AbstractShooter
             {
                 SoundsManager.Mute = !SoundsManager.Mute;
             }
+            else if (resetCameraZoomAction.CheckBindings())
+            {
+                Camera.ZoomScale = 1;
+            }
+            if (zoomCameraAction.CheckBindings())
+            {
+                Camera.ZoomScale += 0.77F * Camera.ZoomScale * (float)gameTime.ElapsedGameTime.TotalSeconds;
+            }
+            if (unzoomCameraAction.CheckBindings())
+            {
+                Camera.ZoomScale -= 0.77F * Camera.ZoomScale * (float)gameTime.ElapsedGameTime.TotalSeconds;
+            }
 #endif
 
             StateManager.Update(gameTime);
@@ -217,6 +300,11 @@ namespace AbstractShooter
                 curResolutionX = maxResolutionX;
                 curResolutionY = maxResolutionY;
             }
+            else if (false)
+            {
+                curResolutionX = defaultResolutionX;
+                curResolutionY = defaultResolutionY;
+            }
             else
             {
                 curResolutionX = minResolutionX;
@@ -226,7 +314,7 @@ namespace AbstractShooter
             Window.IsBorderless = isBorderless;
             graphicsDeviceManager.PreferredBackBufferWidth = curResolutionX;
             graphicsDeviceManager.PreferredBackBufferHeight = curResolutionY;
-            resolutionScale = (float)curResolutionX / minResolutionX;
+            resolutionScale = (float)curResolutionX / defaultResolutionX;
             graphicsDeviceManager.ApplyChanges();
             if (timer != null)
             {
@@ -261,6 +349,13 @@ namespace AbstractShooter
             renderTarget1 = new RenderTarget2D(GraphicsDevice, curResolutionX, curResolutionY, false, pp.BackBufferFormat, pp.DepthStencilFormat, pp.MultiSampleCount, RenderTargetUsage.DiscardContents);
             renderTarget2 = new RenderTarget2D(GraphicsDevice, curResolutionX, curResolutionY, false, pp.BackBufferFormat, pp.DepthStencilFormat, pp.MultiSampleCount, RenderTargetUsage.DiscardContents);
         }
+
+        public void SetVSync(bool vSync)
+        {
+            isVSync = vSync;
+            graphicsDeviceManager.SynchronizeWithVerticalRetrace = isVSync;
+            IsFixedTimeStep = isVSync;
+        }
         
         private void OnTimedEvent(object source, System.Timers.ElapsedEventArgs e)
         {
@@ -280,14 +375,47 @@ namespace AbstractShooter
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.SetRenderTarget(null);
-            GraphicsDevice.Clear(Color.Black);
-
-            spriteBatch.Begin();
             StateManager.Draw();
-            spriteBatch.End();
-            
             base.Draw(gameTime);
         }
+
+#if (DEBUG)
+        public static void AddDebugString(string stringToPrint, Color color, float timeLeft = 0)
+        {
+            debugStrings.Add(new DebugString(stringToPrint, color, timeLeft));
+        }
+        public static void AddDebugString(string stringToPrint, float timeLeft = 0)
+        {
+            debugStrings.Add(new DebugString(stringToPrint, timeLeft));
+        }
+
+        public static void DrawFPS()
+        {
+            float stringScale = 3F;
+            string stringToDraw;
+            if (fpsAverage.ToString().Length > 3)
+                stringToDraw = fpsAverage.ToString().Remove(3);
+            else
+                stringToDraw = fpsAverage.ToString();
+            spriteBatch.DrawString(debugFont, stringToDraw,
+                new Vector2(0.9328125F * curResolutionX, 0.05347F * curResolutionY),
+                Color.WhiteSmoke, 0, Vector2.Zero,
+                ResolutionScale * debugFontScale * stringScale, SpriteEffects.None, 0);
+        }
+        public static void DrawDebugStrings()
+        {
+            for (int i = debugStrings.Count - 1; i >= 0; i--)
+            {
+                string stringToDraw = debugStrings[i].stringToPrint;
+                int orderedI = debugStrings.Count - 1 - i;
+                float stringScale = 1.7F;
+                Vector2 stringSize = debugFont.MeasureString(stringToDraw) * debugFontScale * stringScale;
+                spriteBatch.DrawString(debugFont, stringToDraw,
+                    new Vector2(0F, stringSize.Y * orderedI * ResolutionScale),
+                    debugStrings[i].color, 0, Vector2.Zero,
+                    ResolutionScale * debugFontScale * stringScale, SpriteEffects.None, 0);
+            }
+        }
+#endif
     }
 }

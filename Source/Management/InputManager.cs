@@ -128,13 +128,13 @@ namespace InputManagement
 
     public struct KeyAxisBinding<T>
     {
-        public readonly bool isNegative;
+        public readonly float multiplier;
         public readonly T key; //Keys, Buttons or MouseButtons
 
-        public KeyAxisBinding(T key, bool isNegative = false)
+        public KeyAxisBinding(T key, float multiplier = 1F)
         {
             this.key = key;
-            this.isNegative = isNegative;
+            this.multiplier = multiplier;
         }
     }
 
@@ -160,17 +160,17 @@ namespace InputManagement
     public class AxisBinding
     {
         //GamePadAxis can be between -1 and 1 or 0 and 1
-        public readonly GamePadAxis[] gamePadAxes;
+        public readonly KeyAxisBinding<GamePadAxis>[] gamePadAxes;
         //Buttons are 0 if unpressed, 1 if pressed
         public readonly KeyAxisBinding<Keys>[] keyboardKeyAxisBindings;
         public readonly KeyAxisBinding<Buttons>[] gamePadButtonsAxisBindings;
         public readonly KeyAxisBinding<MouseButtons>[] mouseButtonsAxisBindings;
 
-        public AxisBinding(GamePadAxis[] gamePadAxes = null, KeyAxisBinding<Keys>[] keyboardKeyAxisBindings = null, KeyAxisBinding<Buttons>[] gamePadButtonsAxisBindings = null, KeyAxisBinding<MouseButtons>[] mouseButtonsAxisBindings = null)
+        public AxisBinding(KeyAxisBinding<GamePadAxis>[] gamePadAxes = null, KeyAxisBinding<Keys>[] keyboardKeyAxisBindings = null, KeyAxisBinding<Buttons>[] gamePadButtonsAxisBindings = null, KeyAxisBinding<MouseButtons>[] mouseButtonsAxisBindings = null)
         {
             if (gamePadAxes == null)
             {
-                gamePadAxes = new GamePadAxis[0];
+                gamePadAxes = new KeyAxisBinding<GamePadAxis>[0];
             }
             if (keyboardKeyAxisBindings == null)
             {
@@ -605,7 +605,7 @@ namespace InputManagement
                 foreach (KeyAxisBinding<Keys> keyboardKeyAxisBinding in axisBinding.keyboardKeyAxisBindings)
                 {
                     if (currentKeyboardState.IsKeyDown(keyboardKeyAxisBinding.key))
-                        value += keyboardKeyAxisBinding.isNegative ? -1F : 1F;
+                        value += keyboardKeyAxisBinding.multiplier;
                 }
             }
             if (newInputMode.Mouse)
@@ -613,21 +613,21 @@ namespace InputManagement
                 foreach (KeyAxisBinding<MouseButtons> mouseButtonsAxisBinding in axisBinding.mouseButtonsAxisBindings)
                 {
                     if (IsMouseButtonDown(mouseButtonsAxisBinding.key))
-                        value += mouseButtonsAxisBinding.isNegative ? -1F : 1F;
+                        value += mouseButtonsAxisBinding.multiplier;
                 }
             }
             for (int i = 0; i < newInputMode.GamePads.Length; ++i)
             {
                 if (newInputMode.GamePads[i])
                 {
-                    foreach (GamePadAxis gamePadAxis in axisBinding.gamePadAxes)
+                    foreach (KeyAxisBinding<GamePadAxis> gamePadAxis in axisBinding.gamePadAxes)
                     {
-                        value += GetGamePadAxisValue(gamePadAxis, i);
+                        value += GetGamePadAxisValue(gamePadAxis.key, i) * gamePadAxis.multiplier;
                     }
                     foreach (KeyAxisBinding<Buttons> gamePadButtonsAxisBindings in axisBinding.gamePadButtonsAxisBindings)
                     {
                         if (currentGamePadState[i].IsButtonDown(gamePadButtonsAxisBindings.key))
-                            value += gamePadButtonsAxisBindings.isNegative ? -1F : 1F;
+                            value += gamePadButtonsAxisBindings.multiplier;
                     }
                 }
             }

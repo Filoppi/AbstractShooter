@@ -15,9 +15,9 @@ namespace AbstractShooter.States
             if (GameInstance.HiScore != 0)
             {
                 string stringToDraw = "Hiscore: " + GameInstance.HiScore.ToString();
-                float fontScale = 0.94F;
-                Vector2 stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * fontScale;
-                Game1.spriteBatch.DrawString(Game1.defaultFont, stringToDraw, new Vector2((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.resolutionScale), 5 * Game1.resolutionScale), Color.Fuchsia, 0, Vector2.Zero, Game1.resolutionScale * Game1.defaultFontScale * fontScale, SpriteEffects.None, 0);
+                float stringScale = 0.94F;
+                Vector2 stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
+                Game1.spriteBatch.DrawString(Game1.defaultFont, stringToDraw, new Vector2((Game1.curResolutionX / 2F) - ((stringSize.X / 2F) * Game1.ResolutionScale), Game1.curResolutionY * 0.00694F), Color.Fuchsia, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
             }
         }
     }
@@ -27,7 +27,7 @@ namespace AbstractShooter.States
         public override string Name { get { return "New Game"; } }
         public override void Enter()
         {
-            StateManager.CreateAndSetState<States.Level1, States.Pause>();
+            StateManager.CreateAndSetState<States.Level1, States.PauseMenuState>();
         }
     }
     public class Level2MenuChoice : MenuEntryChoice
@@ -35,7 +35,7 @@ namespace AbstractShooter.States
         public override string Name { get { return "Level 2"; } }
         public override void Enter()
         {
-            StateManager.CreateAndSetState<States.Level2, States.Pause>();
+            StateManager.CreateAndSetState<States.Level2, States.PauseMenuState>();
         }
     }
     public class Level3MenuChoice : MenuEntryChoice
@@ -43,7 +43,7 @@ namespace AbstractShooter.States
         public override string Name { get { return "Level 3"; } }
         public override void Enter()
         {
-            StateManager.CreateAndSetState<States.Level3, States.Pause>();
+            StateManager.CreateAndSetState<States.Level3, States.PauseMenuState>();
         }
     }
     public class LevelEndlessMenuChoice : MenuEntryChoice
@@ -51,7 +51,7 @@ namespace AbstractShooter.States
         public override string Name { get { return "Endless"; } }
         public override void Enter()
         {
-            StateManager.CreateAndSetState<States.LevelEndless, States.Pause>();
+            StateManager.CreateAndSetState<States.LevelEndless, States.PauseMenuState>();
         }
     }
     public class ShowControlsMenuChoice : MenuEntryChoice
@@ -143,6 +143,24 @@ namespace AbstractShooter.States
             Game1.Get.SetScreenState(!Game1.isMaxResolution, Game1.isFullScreen, Game1.isBorderless);
         }
     }
+    public class VSyncMenuChoice : MenuEntryChoice
+    {
+        public override string Name
+        {
+            get
+            {
+                if (Game1.isVSync)
+                {
+                    return "Disable V-Sync";
+                }
+                return "Enable V-Sync";
+            }
+        }
+        public override void Enter()
+        {
+            Game1.Get.SetVSync(!Game1.isVSync);
+        }
+    }
     public class ClearSaveMenuChoice : MenuEntryChoice
     {
         public override string Name { get { return "Clear Save"; } }
@@ -154,7 +172,7 @@ namespace AbstractShooter.States
 
     public class MainMenuState : MenuState
     {
-        private static bool EffectPlayed = false;
+        private static bool EffectPlayed;
 
         public override void Initialize()
         {
@@ -169,7 +187,7 @@ namespace AbstractShooter.States
             List<MenuEntryChoice> SelectLevel = new List<MenuEntryChoice>() { new Level1MenuChoice(), new Level2MenuChoice(), new Level3MenuChoice() };
             List<MenuEntryChoice> EndlessMode = new List<MenuEntryChoice> { new LevelEndlessMenuChoice() };
             List<MenuEntryChoice> ShowControls = new List<MenuEntryChoice> { new ShowControlsMenuChoice() };
-            List<MenuEntryChoice> Settings = new List<MenuEntryChoice> { new FullScreenMenuChoice(), new MaximizeMenuChoice(), new BorderlessMenuChoice(), new VolumeMenuChoice(), new ClearSaveMenuChoice() };
+            List<MenuEntryChoice> Settings = new List<MenuEntryChoice> { new FullScreenMenuChoice(), new MaximizeMenuChoice(), new BorderlessMenuChoice(), new VSyncMenuChoice(), new VolumeMenuChoice(), new ClearSaveMenuChoice() };
             List<MenuEntryChoice> Quit = new List<MenuEntryChoice> { new ExitMenuChoice() };
 
             menu = new MainMenu(new List<MenuEntry> {

@@ -2,7 +2,7 @@
 
 namespace AbstractShooter
 {
-    public class ScalingBehaveComponent : Component
+    public class CScalingBehaveComponent : CComponent
     {
         protected double scaleTimeElapsed = 0;
         protected double scaleTime = 0;
@@ -10,7 +10,7 @@ namespace AbstractShooter
         protected double orginalScale = 1;
         protected bool scaleUp = true;
 
-        public ScalingBehaveComponent(AActor owner) : base(owner)
+        public CScalingBehaveComponent(AActor owner) : base(owner)
         {
             scaleTime = 0.8824F;
             orginalScale = owner.WorldScale;

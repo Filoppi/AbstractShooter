@@ -9,10 +9,14 @@ namespace AbstractShooter.States
     {
         protected Texture2D background;
 
-        public override void Draw()
+        public override void BeginDraw()
         {
-            Game1.spriteBatch.Draw(background, new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY), Color.White);
-            base.Draw();
+            base.BeginDraw();
+
+            if (background != null)
+            {
+                Game1.spriteBatch.Draw(background, new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY), Color.White);
+            }
         }
     }
 

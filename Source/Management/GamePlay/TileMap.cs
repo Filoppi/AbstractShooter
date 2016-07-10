@@ -7,36 +7,8 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace AbstractShooter
 {
-    public class RectangleF
-    {
-        public float Height;
-        public float Width;
-        public float X;
-        public float Y;
-
-        public RectangleF(float x, float y, float width, float height)
-        {
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
-        public RectangleF(int x, int y, int width, int height)
-        {
-            X = (float)x;
-            Y = (float)y;
-            Width = (float)width;
-            Height = (float)height;
-        }
-        public Rectangle GetRectangle()
-        {
-            return new Rectangle((int)Math.Round(X), (int)Math.Round(Y), (int)Math.Round(Width), (int)Math.Round(Height));
-        }
-    }
-
     static class TileMap
     {
-        #region Declarations
         private static int TileWidth = 32;
         private static int TileHeight = 32;
         private static int MapWidth = 42;
@@ -47,9 +19,7 @@ namespace AbstractShooter
         private static int[,] mapSquares = new int[MapWidth, MapHeight];
 
         private static Random rand = new Random();
-        #endregion
-
-        #region Initialization
+        
         static public void Initialize(int RealMapWidth, int RealMapHeight)
         {
             MapWidth = RealMapWidth / TileWidth;
@@ -62,7 +32,6 @@ namespace AbstractShooter
 
             GenerateMap();
         }
-        #endregion
 
         #region Information about Map Squares
         static public int GetSquareByPixelX(int pixelX)
@@ -107,7 +76,7 @@ namespace AbstractShooter
         //}
         static public RectangleF SquareScreenRectangle(int x, int y)
         {
-            return Camera.Transform(SquareWorldRectangle(x, y));
+            return Camera.WorldToScreenSpace(SquareWorldRectangle(x, y));
         }
         //static public Rectangle SquareSreenRectangle(Vector2 square)
         //{
@@ -128,26 +97,26 @@ namespace AbstractShooter
                 return -1;
             }
         }
-        static public void SetTileAtSquare(int tileX, int tileY, int tile)
-        {
-            if ((tileX >= 0) && (tileX < MapWidth) &&
-                (tileY >= 0) && (tileY < MapHeight))
-            {
-                mapSquares[tileX, tileY] = tile;
-            }
-        }
+        //static public void SetTileAtSquare(int tileX, int tileY, int tile)
+        //{
+        //    if ((tileX >= 0) && (tileX < MapWidth) &&
+        //        (tileY >= 0) && (tileY < MapHeight))
+        //    {
+        //        mapSquares[tileX, tileY] = tile;
+        //    }
+        //}
         static public int GetTileAtPixel(int pixelX, int pixelY)
         {
             return GetTileAtSquare(
                 GetSquareByPixelX(pixelX),
                 GetSquareByPixelY(pixelY));
         }
-        static public int GetTileAtPixel(Vector2 pixelLocation)
-        {
-            return GetTileAtPixel(
-                (int)pixelLocation.X,
-                (int)pixelLocation.Y);
-        }
+        //static public int GetTileAtPixel(Vector2 pixelLocation)
+        //{
+        //    return GetTileAtPixel(
+        //        (int)pixelLocation.X,
+        //        (int)pixelLocation.Y);
+        //}
         static public bool IsWallTile(int tileX, int tileY)
         {
             int tileIndex = GetTileAtSquare(tileX, tileY);
@@ -170,8 +139,7 @@ namespace AbstractShooter
                 GetSquareByPixelY((int)pixelLocation.Y));
         }
         #endregion
-
-        #region Map Generation
+        
         static public void GenerateMap()
         {
             for (int x = 0; x < MapWidth; x++)
@@ -187,18 +155,14 @@ namespace AbstractShooter
                 }
             }
         }
-        #endregion
 
-        #region Drawing
         static public void Draw()
         {
-            int startX = GetSquareByPixelX((int)Camera.Position.X);
-            //int endX = GetSquareByPixelX((int)Camera.DefaultPosition.X + (int)Math.Round((float)Camera.ViewPortWidth / Game1.resolutionScale));
-            int endX = GetSquareByPixelX((int)Camera.Position.X + Camera.ViewPortWidth);
+            int startX = GetSquareByPixelX((int)Camera.TopLeft.X);
+            int endX = GetSquareByPixelX((int)Camera.BottomRight.X);
 
-            int startY = GetSquareByPixelY((int)Camera.Position.Y);
-            //int endY = GetSquareByPixelY((int)Camera.DefaultPosition.Y + (int)Math.Round((float)Camera.ViewPortHeight / Game1.resolutionScale));
-            int endY = GetSquareByPixelY((int)Camera.Position.Y + Camera.ViewPortHeight);
+            int startY = GetSquareByPixelY((int)Camera.TopLeft.Y);
+            int endY = GetSquareByPixelY((int)Camera.BottomRight.Y);
 
             //int drawn = 0;
             for (int x = startX; x <= endX; x++)
@@ -216,15 +180,13 @@ namespace AbstractShooter
                         //drawn++;
                         //Game1.spriteBatch.Draw(
                         //    StateManager.currentState.spriteSheet,
-                        //    new Vector2(SquareScreenRectangle(x, y).X * Game1.resolutionScale, SquareScreenRectangle(x, y).Y * Game1.resolutionScale),
+                        //    new Vector2(SquareScreenRectangle(x, y).X * Game1.ResolutionScale, SquareScreenRectangle(x, y).Y * Camera.DrawScale),
                         //    tiles[GetTileAtSquare(x, y)],
-                        //    Color.White, 0, Vector2.Zero, Game1.resolutionScale, SpriteEffects.None, 0);
+                        //    Color.White, 0, Vector2.Zero, Camera.DrawScale, SpriteEffects.None, 0);
                     }
                 }
             }
             //Console.WriteLine(drawn.ToString());
         }
-        #endregion
-
     }
 }

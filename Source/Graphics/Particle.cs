@@ -1,10 +1,302 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace AbstractShooter
 {
+    public class Particle
+    {
+        public Texture2D Texture;
+
+        private Vector2 worldLocation = Vector2.Zero;
+        private Vector2 velocity = Vector2.Zero;
+
+        protected List<Rectangle> frames = new List<Rectangle>();
+        protected int currentFrame = 0;
+
+        public virtual int CurrentFrame
+        {
+            get { return currentFrame; }
+            set { currentFrame = (int)MathHelper.Clamp(value, 0, frames.Count - 1); }
+        }
+        public virtual Rectangle CurrentFrameRectangle { get { return frames[currentFrame]; } }
+
+        private Color tintColor = Color.White;
+
+        private float rotation = 0.0f;
+        public float scale = 1.0f;
+
+        public bool Expired = false;
+        
+        public int BoundingXPadding = 0;
+        public int BoundingYPadding = 0;
+
+        public float drawDepth;
+
+        private Vector2 acceleration;
+        private float maxSpeed;
+        private float initialDuration;
+        protected float remainingDuration;
+        private Color initialColor;
+        private Color finalColor;
+
+        public float ElapsedDuration
+        {
+            get
+            {
+                return initialDuration - remainingDuration;
+            }
+        }
+        public float DurationProgress
+        {
+            get
+            {
+                return ElapsedDuration / initialDuration;
+            }
+        }
+        public bool IsActive
+        {
+            get
+            {
+                return remainingDuration > 0;
+            }
+        }
+
+        public Particle(Vector2 worldLocation, float newScale, Texture2D texture, List<Rectangle> frames, Vector2 velocity, float duration, bool foreground = false)
+        {
+            this.worldLocation = worldLocation;
+            scale = newScale;
+            Texture = texture;
+            this.velocity = velocity;
+
+            this.frames = frames;
+            
+            initialDuration = duration;
+            remainingDuration = duration;
+            this.acceleration = Vector2.Zero;
+            this.maxSpeed = 0;
+
+            if (foreground)
+            {
+                drawDepth = DrawGroup.ForegroundParticles;
+            }
+            else
+            {
+                drawDepth = DrawGroup.BackgroundParticles;
+            }
+        }
+        public Particle(Vector2 location, Texture2D texture, List<Rectangle> frames, Vector2 velocity, Vector2 acceleration, float maxSpeed, float duration, Color initialColor, Color finalColor, bool foreground = false)
+        {
+            this.worldLocation = location;
+            scale = 1F;
+            Texture = texture;
+            this.velocity = velocity;
+
+            this.frames = frames;
+
+            initialDuration = duration;
+            remainingDuration = duration;
+            this.acceleration = acceleration;
+            this.maxSpeed = maxSpeed;
+            this.initialColor = initialColor;
+            this.finalColor = finalColor;
+            this.finalColor.A = 0;
+
+            if (foreground)
+            {
+                drawDepth = DrawGroup.ForegroundParticles;
+            }
+            else
+            {
+                drawDepth = DrawGroup.BackgroundParticles;
+            }
+        }
+
+        public int FrameWidth
+        {
+            get { return frames[0].Width; }
+        }
+        public int FrameHeight
+        {
+            get { return frames[0].Height; }
+        }
+
+        public float Rotation
+        {
+            get { return rotation; }
+            set { rotation = value % MathHelper.TwoPi; }
+        }
+        
+        public Vector2 Velocity
+        {
+            get { return velocity; }
+            set { velocity = value; }
+        }
+
+        public Rectangle WorldRectangle
+        {
+            get
+            {
+                return new Rectangle(
+                    (int)(worldLocation.X - FrameWidth / 2F), //Is the Float division needed?
+                    (int)(worldLocation.Y - FrameHeight / 2F),
+                    (int)FrameWidth,
+                    (int)FrameHeight);
+            }
+        }
+        public Rectangle BoundingBox
+        {
+            get
+            {
+                return WorldRectangle.FitRotation(rotation);
+            }
+        }
+
+        public Vector2 RelativeCenter
+        {
+            get { return new Vector2(FrameWidth / 2, FrameHeight / 2); }
+        }
+
+        public Vector2 ScreenCenter
+        {
+            get { return Camera.WorldToScreenSpace(worldLocation); }
+        }
+
+        public virtual void Animate(double elapsed) { }
+
+        public virtual void Update(GameTime gameTime)
+        {
+            if (IsActive)
+            {
+                Velocity += acceleration * (float)gameTime.ElapsedGameTime.TotalSeconds * 60F;
+                if (Velocity.Length() > maxSpeed)
+                {
+                    Vector2 vel = Velocity;
+                    vel.Normalize();
+                    Velocity = vel * maxSpeed;
+                }
+                if (initialColor != finalColor)
+                {
+                    tintColor = Color.Lerp(
+                        initialColor,
+                        finalColor,
+                        DurationProgress);
+                }
+                remainingDuration -= (float)gameTime.ElapsedGameTime.TotalSeconds * 100F * StateManager.currentState.TimeScale;
+
+                double elapsed = gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
+                worldLocation += velocity * (float)elapsed;
+                
+                Animate(elapsed);
+            }
+            else
+            {
+                Expired = true;
+            }
+        }
+
+        public virtual void Draw()
+        {
+            if (IsActive && !Expired)
+            {
+                if (Camera.IsRectangleVisible(WorldRectangle))
+                {
+                    Game1.spriteBatch.Draw(
+                        Texture,
+                        ScreenCenter,
+                        CurrentFrameRectangle,
+                        tintColor,
+                        rotation,
+                        RelativeCenter,
+                        scale * Camera.DrawScale,
+                        SpriteEffects.None,
+                        drawDepth); //Used as particles...
+                }
+            }
+        }
+    }
+    
+    public class AnimatedParticle : Particle
+    {
+        public AnimatedParticle(Vector2 worldLocation, float newScale, Texture2D texture, List<Rectangle> frames, Vector2 velocity, float duration, bool foreground = false)
+            : base(worldLocation, newScale, texture, frames, velocity, duration, foreground)
+        {
+        }
+        public AnimatedParticle(Vector2 location, Texture2D texture, List<Rectangle> frames, Vector2 velocity, Vector2 acceleration, float maxSpeed, float duration, Color initialColor, Color finalColor, bool foreground = false)
+            : base(location, texture, frames, velocity, acceleration, maxSpeed, duration, initialColor, finalColor, foreground)
+        {
+        }
+        
+        private List<Animation> animations = new List<Animation>();
+
+        private int currentAnimation = 0;
+        private int currentAnimationFrameIndex = 0;
+        private double timeForCurrentFrame = 0.0f;
+
+        public bool Animated = true;
+        //public bool AnimateWhenSteady = true;
+        public bool loop = true; //Re-Animate: Means that it should keep animating after the first cycle
+
+        //public void SetFrameTime(int animationIndex, float value)
+        //{
+        //   animations[animationIndex].frameTime = MathHelper.Max(0, value);
+        //}
+
+        public void GenerateDefaultAnimation(float newAnimationTime = 0.1F, bool setAsCurrent = false)
+        {
+            List<int> newAnimation = new List<int>();
+            for (int i = 0; i < frames.Count; ++i)
+            {
+                newAnimation.Add(i);
+            }
+            animations.Add(new Animation(ref newAnimation, newAnimationTime));
+            if (setAsCurrent)
+            {
+                currentAnimation = animations.Count - 1;
+            }
+        }
+        public void AddAnimation(ref List<int> newFramesIndex, float newAnimationTime)
+        {
+            animations.Add(new Animation(ref newFramesIndex, newAnimationTime));
+        }
+        public void SetAnimation(int index)
+        {
+            currentAnimation = index;
+            currentFrame = 0;
+            timeForCurrentFrame = 0.0f;
+            currentAnimationFrameIndex = 0;
+        }
+
+        public override void Animate(double elapsed)
+        {
+            if (Animated && animations.Count > currentAnimation && animations[currentAnimation].frameTime > 0)
+            {
+                timeForCurrentFrame += elapsed;
+
+                while (timeForCurrentFrame >= animations[currentAnimation].frameTime)
+                {
+                    //if ((AnimateWhenSteady) || (velocity != Vector2.Zero))
+                    {
+                        if (!loop && currentFrame == animations[currentAnimation].framesIndex.Count - 1)
+                        {
+                            currentFrame = animations[currentAnimation].framesIndex.Last();
+                            timeForCurrentFrame = 0;
+                        }
+                        else
+                        {
+                            currentAnimationFrameIndex = (currentAnimationFrameIndex + 1) % animations[currentAnimation].framesIndex.Count;
+                            currentFrame = animations[currentAnimation].framesIndex[currentAnimationFrameIndex];
+                            timeForCurrentFrame -= animations[currentAnimation].frameTime;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* Old Version
     class Sprite
     {
         #region Declarations
@@ -167,7 +459,7 @@ namespace AbstractShooter
         {
             get
             {
-                return (Camera.ObjectIsVisible(WorldRectangle));
+                return (Camera.IsRectangleVisible(WorldRectangle));
             }
         }
         #endregion
@@ -263,7 +555,7 @@ namespace AbstractShooter
         {
             if (!Expired)
             {
-                if (Camera.ObjectIsVisible(WorldRectangle))
+                if (Camera.IsRectangleVisible(WorldRectangle))
                 {
                     Game1.spriteBatch.Draw(
                         Texture,
@@ -272,9 +564,9 @@ namespace AbstractShooter
                         tintColor,
                         rotation,
                         RelativeCenter,
-                        scale * Game1.resolutionScale,
+                        scale * Camera.DrawScale,
                         SpriteEffects.None,
-                        0.0f);
+                        DrawGroup.Particles); //Used as particles...
                 }
             }
         }
@@ -389,4 +681,5 @@ namespace AbstractShooter
             }
         }
     }
+    */
 }

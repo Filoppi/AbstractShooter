@@ -9,65 +9,112 @@ using Microsoft.Xna.Framework.Media;
 
 namespace AbstractShooter
 {
+    public struct CustomizedSoundEffect
+    {
+        public SoundEffect[] soundEffects;
+        public float volumeMultiplier;
+        public float maxPitchDelta;
+
+        public CustomizedSoundEffect(SoundEffect[] soundEffects, float volumeMultiplier = 1F, float maxPitchDelta = 0F)
+        {
+            this.soundEffects = soundEffects;
+            this.volumeMultiplier = volumeMultiplier;
+            this.maxPitchDelta = maxPitchDelta;
+        }
+
+        public void Play()
+        {
+            soundEffects[MathExtention.Rand.Next(0, soundEffects.Length)].Play(SoundsManager.Volume * volumeMultiplier, maxPitchDelta * (float)((MathExtention.Rand.NextDouble() * 2.0) - 1.0), 0);
+        }
+        public void Play(Vector2 worldLocation)
+        {
+            soundEffects[MathExtention.Rand.Next(0, soundEffects.Length)].Play(SoundsManager.Volume * volumeMultiplier, maxPitchDelta * (float)((MathExtention.Rand.NextDouble() * 2.0) - 1.0), (Camera.GetNormalizedViewPortAlpha(worldLocation).X * 0.5F).GetClamped(-1F, 1F));
+        }
+    }
+
+    public struct CustomizedSong
+    {
+        public Song song;
+        public float volumeMultiplier;
+
+        public CustomizedSong(Song song, float volumeMultiplier = 1F)
+        {
+            this.song = song;
+            this.volumeMultiplier = volumeMultiplier;
+        }
+    }
+
     public static class SoundsManager
     {
-        private static bool mute = false;
+        private static bool mute;
         public static bool Mute
         {
             get { return mute; }
             set
             {
+                if (!mute && value)
+                {
+                    volumeBeforeMute = volume;
+                }
                 mute = value;
-                Volume = mute ? 0F : 1F;
+                Volume = mute ? 0F : volumeBeforeMute;
             }
         }
-        private static Song music;
-        private static SoundEffect shootMine;
-        private static SoundEffect hit;
-        private static SoundEffect kill;
-        private static SoundEffect spawn;
-        private static SoundEffect explosion;
-        private static SoundEffect shoot;
-        private static SoundEffect selection1;
-        private static SoundEffect selection2;
-        private static SoundEffect selection3;
-        private static SoundEffect powerUp;
-        private static SoundEffect menuEffect;
         private static float volume = 1F;
-        public static float Volume {
+        private static float volumeBeforeMute = 1F;
+        public static float Volume
+        {
             get { return volume; }
             set
             {
                 volume = value;
-                MediaPlayer.Volume = volume;
+                MediaPlayer.Volume = volume * currentSong.volumeMultiplier;
             }
         }
-        private static Random rand = new Random();
+        private static CustomizedSong currentSong;
+
+        //Custom
+        private static CustomizedSong music;
+        private static CustomizedSoundEffect shoot;
+        private static CustomizedSoundEffect shootMine;
+        private static CustomizedSoundEffect explosion;
+        private static CustomizedSoundEffect hit;
+        private static CustomizedSoundEffect kill;
+        private static CustomizedSoundEffect spawn;
+        private static CustomizedSoundEffect powerUp;
+        private static CustomizedSoundEffect menuEffect;
+        private static CustomizedSoundEffect selection;
 
         public static void Initialize()
         {
-            music = Game1.Get.Content.Load<Song>(@"Sounds\Music");
-            shoot = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Shoot");
-            shootMine = Game1.Get.Content.Load<SoundEffect>(@"Sounds\ShootMine");
-            explosion = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Explosion");
-            selection1 = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Selection1");
-            selection2 = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Selection2");
-            selection3 = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Selection3");
-            powerUp = Game1.Get.Content.Load<SoundEffect>(@"Sounds\PowerUp");
-            menuEffect = Game1.Get.Content.Load<SoundEffect>(@"Sounds\MenuEffect");
-            hit = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Hit");
-            kill = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Kill");
-            spawn = Game1.Get.Content.Load<SoundEffect>(@"Sounds\Spawn");
+            music = new CustomizedSong(Game1.Get.Content.Load<Song>(@"Sounds\Music"), 0.68F);
+            music.SetAsCurrentSong();
+
+            shoot = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\Shoot") }, 0.35F, 0.3F);
+            shootMine = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\ShootMine") }, 0.69F, 0F);
+            explosion = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\Explosion") }, 0.69F, 0F);
+            hit = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\Hit") }, 0.92F, 0.14F);
+            kill = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\Kill") }, 1F, 0.14F);
+            spawn = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\Spawn") }, 0.73F, 0F);
+            powerUp = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\PowerUp") }, 1F, 0F);
+
+            menuEffect = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\MenuEffect") }, 0.73F, 0F);
+            selection = new CustomizedSoundEffect(new[] { Game1.Get.Content.Load<SoundEffect>(@"Sounds\Selection1"), Game1.Get.Content.Load<SoundEffect>(@"Sounds\Selection2"), Game1.Get.Content.Load<SoundEffect>(@"Sounds\Selection3") }, 1F, 0F);
 
             MediaPlayer.Stop();
             MediaPlayer.IsRepeating = true;
-            MediaPlayer.Volume = 0.68f;
+        }
+
+        public static void SetAsCurrentSong(this CustomizedSong customizedSong)
+        {
+            currentSong = customizedSong;
         }
 
         #region Play Sound Methods
         public static void PlayMusic()
         {
-            MediaPlayer.Play(music);
+            MediaPlayer.Volume = volume * currentSong.volumeMultiplier;
+            MediaPlayer.Play(currentSong.song);
         }
         public static void PauseMusic()
         {
@@ -79,46 +126,39 @@ namespace AbstractShooter
         }
         public static void PlayShoot()
         {
-            shoot.Play(0.35f * Volume, (float)rand.Next(-30, 30) / 100.0f, 0);
+            shoot.Play();
         }
         public static void PlayShootMine()
         {
-            shootMine.Play(0.69f * Volume, 0, 0);
+            shootMine.Play();
         }
-        public static void PlayExplosion()
+        public static void PlayExplosion(Vector2 worldLocation)
         {
-            explosion.Play(0.69f * Volume, 0, 0);
+            explosion.Play(worldLocation);
         }
-        public static void PlayHit()
+        public static void PlayHit(Vector2 worldLocation)
         {
-            hit.Play(0.92f * Volume, (float)rand.Next(-14, 14) / 100.0f, 0);
+            hit.Play(worldLocation);
         }
-        public static void PlayKill()
+        public static void PlayKill(Vector2 worldLocation)
         {
-            kill.Play(1.0f * Volume, (float)rand.Next(-14, 14) / 100.0f, 0);
+            kill.Play(worldLocation);
         }
         public static void PlaySpawn()
         {
-            spawn.Play(0.73f * Volume, 0, 0);
+            spawn.Play();
         }
         public static void PlayPowerUp()
         {
-            powerUp.Play(1.0f * Volume, 0, 0);
+            powerUp.Play();
         }
         public static void PlayMenuEffect()
         {
-            menuEffect.Play(0.73f * Volume, 0, 0);
+            menuEffect.Play();
         }
         public static void PlaySelection()
         {
-            //Decided randomly between 3 sounds
-            int randTemp = rand.Next(0, 3);
-            if (randTemp == 0)
-                selection1.Play(1.0f * Volume, 0, 0);
-            else if (randTemp == 1)
-                selection2.Play(1.0f * Volume, 0, 0);
-            else
-                selection3.Play(1.0f * Volume, 0, 0);
+            selection.Play();
         }
         #endregion
     }
