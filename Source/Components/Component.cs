@@ -2,6 +2,19 @@
 
 namespace AbstractShooter
 {
+    public delegate void DestroyedEventHandler(CComponent sender);
+
+    //public enum InputModes
+    //{
+    //    KeyboardMouse,
+    //    Keyboard,
+    //    Mouse,
+    //    GamePad,
+    //    KeyboardMouseGamePad1, //Allows the use of everything together
+    //    KeyboardMouseGamePads, //Allows the use of everything together for Multiplayer
+    //    None
+    //};
+
     public abstract class CComponent
     {
         protected AActor owner;

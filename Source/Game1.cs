@@ -45,8 +45,8 @@ namespace AbstractShooter
         //private static RenderTarget2D renderTarget2D;
         public const int defaultResolutionX = 1280;
         public const int defaultResolutionY = 720;
-        public static int minResolutionX = defaultResolutionX / 2;
-        public static int minResolutionY = defaultResolutionY / 2;
+        public static int minResolutionX = defaultResolutionX; // / 2
+        public static int minResolutionY = defaultResolutionY; // / 2
         private static int maxResolutionX = defaultResolutionX;
         private static int maxResolutionY = defaultResolutionY;
         public static int curResolutionX = defaultResolutionX;
