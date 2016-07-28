@@ -1,35 +1,34 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
-using System.Windows.Forms;
 
 namespace AbstractShooter
 {
-    public class RectangleF
-    {
-        public float Height;
-        public float Width;
-        public float X;
-        public float Y;
+    //public class RectangleF2
+    //{
+    //    public float Height;
+    //    public float Width;
+    //    public float X;
+    //    public float Y;
 
-        public RectangleF(float x, float y, float width, float height)
-        {
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
-        public RectangleF(int x, int y, int width, int height)
-        {
-            X = (float)x;
-            Y = (float)y;
-            Width = (float)width;
-            Height = (float)height;
-        }
-        public Rectangle GetRectangle()
-        {
-            return new Rectangle((int)Math.Round(X), (int)Math.Round(Y), (int)Math.Round(Width), (int)Math.Round(Height));
-        }
-    }
+    //    public RectangleF2(float x, float y, float width, float height)
+    //    {
+    //        X = x;
+    //        Y = y;
+    //        Width = width;
+    //        Height = height;
+    //    }
+    //    public RectangleF2(int x, int y, int width, int height)
+    //    {
+    //        X = (float)x;
+    //        Y = (float)y;
+    //        Width = (float)width;
+    //        Height = (float)height;
+    //    }
+    //    public Rectangle GetRectangle()
+    //    {
+    //        return new Rectangle((int)Math.Round(X), (int)Math.Round(Y), (int)Math.Round(Width), (int)Math.Round(Height));
+    //    }
+    //}
 
     public class Circle
     {
@@ -133,6 +132,18 @@ namespace AbstractShooter
             float topY = Math.Max(Math.Abs(topLeft.Y), Math.Abs(topRight.Y));
             float rightX = Math.Max(Math.Abs(topLeft.X), Math.Abs(topRight.X));
             return new Rectangle(SymmetricCeiling(center.X - rightX), SymmetricCeiling(center.Y - topY), (int)Math.Ceiling(topY * 2), (int)Math.Ceiling(rightX * 2));
+        }
+        public static bool IntersectsPoint(this Rectangle rectangle, Point point)
+        {
+            return rectangle.Intersects(new Rectangle(point.X, point.Y, 1, 1));
+        }
+        public static bool IntersectsPoint(this Rectangle rectangle, Vector2 point)
+        {
+            return rectangle.Intersects(new Rectangle((int)point.X, (int)point.Y, 1, 1));
+        }
+        public static int Round(this float val)
+        {
+            return (int)Math.Round(val);
         }
         public static int SymmetricCeiling(this float val)
         {

@@ -81,7 +81,7 @@ namespace AbstractShooter
             //}
             if (inputMode.Mouse && Mouse.GetState().LeftButton == ButtonState.Pressed)
             {
-                fireAngle = new Vector2(InputManager.currentMouseState.Position.X - (Game1.curResolutionX / 2), InputManager.currentMouseState.Position.Y - (Game1.curResolutionY / 2));
+                fireAngle = new Vector2(InputManager.currentMouseState.Position.X - (Game1.currentWindowResolution.X / 2), InputManager.currentMouseState.Position.Y - (Game1.currentWindowResolution.Y / 2));
             }
             else
             {
@@ -146,12 +146,12 @@ namespace AbstractShooter
                 {
                     if (new Circle(spriteComponent.WorldLocation, spriteComponent.CollisionRadius * 5.75f).IsCollidingWith(enemy.RootComponent.CollisionCircle))
                     {
-                        ParticlesManager.AddFlakesEffect(spriteComponent.WorldCenter,
+                        ParticlesManager.AddFlakesEffect(spriteComponent.WorldLocation,
                             spriteComponent.localVelocity/1, Color.White);
-                        ParticlesManager.AddExplosion(spriteComponent.WorldCenter, spriteComponent.localVelocity/1,
+                        ParticlesManager.AddExplosion(spriteComponent.WorldLocation, spriteComponent.localVelocity/1,
                             enemy.GetColor());
 
-                        ((Level)StateManager.currentState).addScore(0);
+                        ((Level)StateManager.currentState).AddScore(0);
                         enemy.Destroy();
                         break;
                     }
@@ -240,7 +240,7 @@ namespace AbstractShooter
 
             base.UpdateActor(gameTime);
             //Sets the camera so that the player is in its centre
-            Camera.Center = rootComponent.WorldCenter;
+            Camera.Center = rootComponent.WorldLocation;
         }
         public override void Draw()
         {
@@ -268,14 +268,14 @@ namespace AbstractShooter
                         if (spriteComponent.IsInViewport &&
                             spriteComponent.CollisionCircle.IsCollidingWith(RootComponent.CollisionCircle))
                         {
-                            ParticlesManager.AddFlakesEffect(spriteComponent.WorldCenter,
+                            ParticlesManager.AddFlakesEffect(spriteComponent.WorldLocation,
                                 spriteComponent.localVelocity/1, ((AEnemyActor)otherActor).GetColor());
-                            ParticlesManager.AddExplosion(spriteComponent.WorldCenter,
+                            ParticlesManager.AddExplosion(spriteComponent.WorldLocation,
                                 spriteComponent.localVelocity/1, Color.White);
 
                             otherActor.Destroy();
 
-                            //addScore(0); //TO readd
+                            //AddScore(0); //TO readd
                             SoundsManager.PlayKill(otherActor.WorldLocation);
                             Hit();
                             ResetLocation();

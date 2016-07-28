@@ -11,11 +11,11 @@ namespace AbstractShooter
         public Texture2D spriteSheet;
         private List<AActor> actors, actorsToRegisterUpdate, actorsToUnregisterUpdate;
         private List<WeakReference<AActor>>[] actorsUpdateGroups;
-        private int spawnedActorsCount = 0;
+        private int spawnedActorsCount;
         private List<WeakReference<CSceneComponent>> sceneComponents; //This is just kept for performance and comfort reasons
         private ASceneActor scene; //Holds all the components that do not need to be in a specific actor (e.g. particle fx)
         public ASceneActor Scene { get { return scene; } }
-        private float timeScale = 1;
+        private float timeScale = 1F;
         public float TimeScale { get { return timeScale; } set { timeScale = value; } }
         private const float actorsDrawDepthDelta = 0.05F;
         public const float componentsDrawDepthDelta = 0.00005F;
@@ -230,6 +230,11 @@ namespace AbstractShooter
 
         public virtual void Update(GameTime gameTime)
         {
+            //if (timeScale == 0F)
+            //{
+            //    return;
+            //}
+
             iteratingActors = true;
 
             //Pre-Physics

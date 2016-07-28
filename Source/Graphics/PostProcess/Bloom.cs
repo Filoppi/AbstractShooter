@@ -74,10 +74,8 @@ namespace BloomPostprocess
             parameters["BaseSaturation"].SetValue(Settings.BaseSaturation);
 
             bloomCombineEffect.Parameters["BaseTexture"].SetValue(sourceRenderTarget);
-
-            Viewport viewport = Game1.Get.GraphicsDevice.Viewport;
             
-            DrawFullscreenQuad(renderTarget1, viewport.Width, viewport.Height, bloomCombineEffect, IntermediateBuffer.FinalResult);
+            DrawFullscreenQuad(renderTarget1, destRenderTarget.Width, destRenderTarget.Height, bloomCombineEffect, IntermediateBuffer.FinalResult);
             //now destRenderTarget has the result rendered into it
         }
         

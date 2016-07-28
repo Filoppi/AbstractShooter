@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Resources;
 
 namespace AbstractShooter
 {
@@ -25,7 +26,9 @@ namespace AbstractShooter
     public static class DrawGroup
     {
         public const float FarBackground = 0.05F;
-        public const float Background = 0.1F;
+        public const float Background1 = 0.075F;
+        public const float Background2 = 0.1F;
+        public const float Background3 = 0.125F;
         public const float BackgroundParticles = 0.15F;
         public const float PassiveObjects = 0.2F;
         public const float Default = 0.25F;
@@ -202,7 +205,11 @@ namespace AbstractShooter
         protected float worldScale = 1F;
         protected float relativeScale = 1F;
         //protected float drawScale = 1F; //Does not affect children, only rendering
-        protected float mass = 0F;
+        protected float mass = 1F;
+        public float ScaledMass
+        {
+            get { return mass * worldScale; }
+        }
         public Vector2 localVelocity = Vector2.Zero;
         protected Vector2 acceleration = Vector2.Zero;
         protected float maxLocalSpeed = -1F;
@@ -407,28 +414,16 @@ namespace AbstractShooter
             return owner.RootComponent == this;
         }
 
-        public float GetTotalMass(float mass = 0)
+        public float GetTotalMass()
         {
-            //To multiply by scale???
-            foreach (CSceneComponent child in children)
+            float totalMass = 0;
+            List<CSceneComponent> components = new List<CSceneComponent>();
+            GetAllDescendantsAndSelf(ref components);
+            foreach (CSceneComponent component in components)
             {
-                mass = child.GetTotalMass(mass);
+                totalMass += component.mass * component.worldScale;
             }
-            mass += this.mass;
-            return mass;
-        }
-        public Vector2 GetMassCenter()
-        {
-            return GetMassCenters() / (float)GetAllDescendantsCount();
-        }
-        private Vector2 GetMassCenters(Vector2 massCenter = default(Vector2))
-        {
-            foreach (CSceneComponent child in children)
-            {
-                massCenter = child.GetMassCenters(massCenter);
-            }
-            massCenter += WorldLocation;
-            return massCenter;
+            return totalMass;
         }
 
         private void UpdateWorldLocation()
@@ -667,7 +662,7 @@ namespace AbstractShooter
                                     {
                                         second = second.Remove(0, "AbstractShooter.A".Length);
                                     }
-                                    Game1.AddDebugString(first + " >-< " + second, 1F);
+                                    Game1.AddDebugString(first + " >-< " + second, false, 1F);
                                 }
 #endif
                                 overlappingComponents.Add(foundSceneComponent);
@@ -795,7 +790,6 @@ namespace AbstractShooter
 
         public virtual Vector2 ScreenCenter { get { return Camera.WorldToScreenSpace(WorldLocation); } }
         public Vector2 ScreenLocation { get { return Camera.WorldToScreenSpace(WorldLocation); } }
-        public virtual Vector2 WorldCenter { get { return WorldLocation; } } //To Delete ??? Could be used as mesh pivot???
         public virtual bool IsInViewport { get { return false; } }
         
         public void RotateTo(Vector2 direction, bool worldRotation = true)

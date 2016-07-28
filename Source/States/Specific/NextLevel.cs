@@ -16,7 +16,6 @@ namespace AbstractShooter.States
     public class NextLevel : TransactionGUIState
     {
         public float TimeLeft; //Temp fix
-        public int lastPlayedLevel; //Temp fix
 
         public override void Initialize()
         {
@@ -46,7 +45,7 @@ namespace AbstractShooter.States
                 Game1.spriteBatch.DrawString(
                     Game1.defaultFont,
                     stringToDraw,
-                    new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.curResolutionY / 2.0f) - (135 * Game1.ResolutionScale)),
+                    new Vector2(((Game1.currentResolution.X / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.currentResolution.Y / 2.0f) - (135 * Game1.ResolutionScale)),
                     Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
             }
             else
@@ -56,7 +55,7 @@ namespace AbstractShooter.States
                 Game1.spriteBatch.DrawString(
                     Game1.defaultFont,
                     stringToDraw,
-                    new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.curResolutionY / 2.0f) - (135 * Game1.ResolutionScale)),
+                    new Vector2(((Game1.currentResolution.X / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.currentResolution.Y / 2.0f) - (135 * Game1.ResolutionScale)),
                     Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
             }
 
@@ -65,7 +64,7 @@ namespace AbstractShooter.States
             Game1.spriteBatch.DrawString(
                 Game1.defaultFont,
                 stringToDraw,
-                new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.curResolutionY / 2.0f) - (89 * Game1.ResolutionScale)),
+                new Vector2(((Game1.currentResolution.X / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.currentResolution.Y / 2.0f) - (89 * Game1.ResolutionScale)),
                 Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
 
             stringToDraw = "( H A R D E R )";
@@ -73,7 +72,7 @@ namespace AbstractShooter.States
             Game1.spriteBatch.DrawString(
                 Game1.defaultFont,
                 stringToDraw,
-                new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.curResolutionY / 2.0f) - (43 * Game1.ResolutionScale)),
+                new Vector2(((Game1.currentResolution.X / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), (Game1.currentResolution.Y / 2.0f) - (43 * Game1.ResolutionScale)),
                 Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
 
             base.EndDraw();

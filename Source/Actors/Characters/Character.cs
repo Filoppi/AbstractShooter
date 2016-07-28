@@ -41,15 +41,15 @@ namespace AbstractShooter
 
             bool collided = false;
             //To improve...
-            if (currentX != currentX.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.GridWidth - 3) * ((Level)StateManager.currentState).grid.NodeSize))
+            if (currentX != currentX.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.gridWidth - 3) * ((Level)StateManager.currentState).grid.NodeSize))
             {
-                currentX = currentX.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.GridWidth - 3) * ((Level)StateManager.currentState).grid.NodeSize);
+                currentX = currentX.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.gridWidth - 3) * ((Level)StateManager.currentState).grid.NodeSize);
 
                 collided = true;
             }
-            if (currentY != currentY.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.GridHeight - 3) * ((Level)StateManager.currentState).grid.NodeSize))
+            if (currentY != currentY.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.gridHeight - 3) * ((Level)StateManager.currentState).grid.NodeSize))
             {
-                currentY = currentY.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.GridHeight - 3) * ((Level)StateManager.currentState).grid.NodeSize);
+                currentY = currentY.GetClamped(((Level)StateManager.currentState).grid.NodeSize, (((Level)StateManager.currentState).grid.gridHeight - 3) * ((Level)StateManager.currentState).grid.NodeSize);
 
                 collided = true;
             }

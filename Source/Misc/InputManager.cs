@@ -1,7 +1,12 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
+using AbstractShooter;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using ButtonState = Microsoft.Xna.Framework.Input.ButtonState;
+using Keys = Microsoft.Xna.Framework.Input.Keys;
 
 namespace InputManagement
 {
@@ -199,10 +204,14 @@ namespace InputManagement
         public static GamePadState[] previousGamePadState = new GamePadState[GamePad.MaximumGamePadCount];
         public static MouseState currentMouseState;
         public static MouseState previousMouseState;
-        private static int numberOfGamePads = 0;
+        private static int numberOfGamePads;
         public static int NumberOfGamePads { get { return numberOfGamePads; } }
-        private static bool isUsingGamePad = false;
+        private static bool isUsingGamePad;
         public static bool IsUsingGamePad { get { return isUsingGamePad; } }
+        private static bool hideMouseWhenNotUsed;
+        public static bool HideMouseWhenNotUsed { set { hideMouseWhenNotUsed = value; } }
+        private static bool captureMouse;
+        public static bool CaptureMouse { set { captureMouse = value; } }
         private static List<ActionBindingWithEvent> actionBindingsWithEvent = new List<ActionBindingWithEvent>();
         private static List<AxisBindingWithEvent> axisBindingsWithEvent = new List<AxisBindingWithEvent>();
 
@@ -243,6 +252,18 @@ namespace InputManagement
 
             previousMouseState = currentMouseState;
             currentMouseState = Mouse.GetState();
+            //currentMouseState = new MouseState((((float)currentMouseState.X / Game1.form.Size.Width) * (float)Game1.graphicsDeviceManager.PreferredBackBufferWidth).Round(), (((float)currentMouseState.Y / Game1.form.Size.Height) * (float)Game1.graphicsDeviceManager.PreferredBackBufferHeight).Round(),
+            //    currentMouseState.ScrollWheelValue, currentMouseState.LeftButton, currentMouseState.MiddleButton, currentMouseState.RightButton,
+            //    currentMouseState.XButton1, currentMouseState.XButton2);
+
+            if (captureMouse)
+            {
+                Cursor cursor = new Cursor(Cursor.Current.Handle);
+                //Cursor.Position = new Point(Cursor.Position.X - 50, Cursor.Position.Y - 50);
+                Cursor.Clip = new System.Drawing.Rectangle(0, 0, 0 ,0);
+                //Cursor.Clip = System.Drawing.Rectangle.Empty;
+                //Mouse.SetPosition(currentMouseState.X.GetClamped(0, Game1.Get.GraphicsDevice.Viewport.Width), currentMouseState.Y.GetClamped(0, Game1.Get.GraphicsDevice.Viewport.Height));
+            }
 
             int foundGamePads = 0;
             //previousGamePadState = currentGamePadState;
@@ -267,19 +288,27 @@ namespace InputManagement
                 {
                     //Broadcast Using GamePad value Event
                     isUsingGamePad = false;
+                    if (hideMouseWhenNotUsed) //&& ! gamepad and mouse are two different players
+                    {
+                        Game1.Get.IsMouseVisible = true;
+                    }
                 }
             }
             else if (HasGamePadStateChanged(0) && !HasKeyboardStateChanged() && !HasMouseStateChanged()) //To ignore mouse when res changed???
             {
                 //Broadcast Using GamePad value Event
                 isUsingGamePad = true;
+                if (hideMouseWhenNotUsed) //&& ! gamepad and mouse are two different players
+                {
+                    Game1.Get.IsMouseVisible = false;
+                }
             }
 
-            foreach (ActionBindingWithEvent actionBindingsWithEvent in actionBindingsWithEvent)
+            foreach (ActionBindingWithEvent actionBindingWithEvent in actionBindingsWithEvent)
             {
-                if (actionBindingsWithEvent.actionBinding.CheckBindings())
+                if (actionBindingWithEvent.actionBinding.CheckBindings())
                 {
-                    actionBindingsWithEvent.BroadcastBidingChanged();
+                    actionBindingWithEvent.BroadcastBidingChanged();
                 }
             }
             foreach (AxisBindingWithEvent axisBindingWithEvent in axisBindingsWithEvent)

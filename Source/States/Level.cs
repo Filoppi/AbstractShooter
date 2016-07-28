@@ -31,7 +31,7 @@ namespace AbstractShooter.States
         protected bool isEndless = false;
         protected int levelIndex = 0;
         public bool isLastLevel = false;
-        public int maxInGameEnemies = 50;
+        public int maxInGameEnemies = 0;
 
         //Gamemanger
         public int CurrentDifficulty = 1; //1 = Super Easy, 2 = Easy, 3 = Medium, 4 = Hard, 5 = Extreme
@@ -52,6 +52,8 @@ namespace AbstractShooter.States
         {
             base.OnSetAsCurrentState();
             SoundsManager.ResumeMusic();
+            InputManager.CaptureMouse = true;
+            InputManager.HideMouseWhenNotUsed = true;
         }
 
         public override void Initialize()
@@ -65,7 +67,7 @@ namespace AbstractShooter.States
             }
             
             CurrentDifficulty = Difficulty;
-            resetScore();
+            ResetScore();
             EnemySpawTimerOriginal = EnemySpawTimer;
             EnemiesSpawned = 0;
 
@@ -123,7 +125,7 @@ namespace AbstractShooter.States
                 EnemySpawTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale;
             }
 
-            grid.Update();
+            grid.Update(gameTime);
             WeaponsAndFireManager.Update(gameTime);
             ParticlesManager.Update(gameTime);
 
@@ -166,7 +168,7 @@ namespace AbstractShooter.States
 
             //Draw bloomed layer over top: 
             Game1.spriteBatch.Begin(0, BlendState.AlphaBlend);
-            Game1.spriteBatch.Draw(Game1.renderTarget2, new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY), Color.White); // draw all glowing components            
+            Game1.spriteBatch.Draw(Game1.renderTarget2, new Rectangle(0, 0, Game1.currentResolution.X, Game1.currentResolution.Y), Color.White); // draw all glowing components            
 
             DrawUI();
 
@@ -179,13 +181,13 @@ namespace AbstractShooter.States
 
             Game1.spriteBatch.DrawString(Game1.defaultFont,
                 stringToDraw,
-                new Vector2(Game1.curResolutionX * 0.86094F, Game1.curResolutionY * 0.00694F),
+                new Vector2(Game1.currentResolution.X * 0.86094F, Game1.currentResolution.Y * 0.00694F),
                 Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
 
             stringToDraw = "Multiplier: " + Multiplier;
             Game1.spriteBatch.DrawString(Game1.defaultFont,
                 stringToDraw,
-                new Vector2(Game1.curResolutionX * 0.01328F, Game1.curResolutionY * 0.00694F),
+                new Vector2(Game1.currentResolution.X * 0.01328F, Game1.currentResolution.Y * 0.00694F),
                 Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
 
             if (!isEndless)
@@ -202,14 +204,14 @@ namespace AbstractShooter.States
                 }
                 Game1.spriteBatch.DrawString(Game1.defaultFont,
                     stringToDraw,
-                    new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), Game1.curResolutionY * 0.00694F),
+                    new Vector2(((Game1.currentResolution.X / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), Game1.currentResolution.Y * 0.00694F),
                 Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
             }
 
             stringToDraw = "Mines: " + WeaponsAndFireManager.minesNumber;
             Game1.spriteBatch.DrawString(Game1.defaultFont,
                 stringToDraw,
-                new Vector2(Game1.curResolutionX * 0.01328F, Game1.curResolutionY * 0.9583F),
+                new Vector2(Game1.currentResolution.X * 0.01328F, Game1.currentResolution.Y * 0.9583F),
                 Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
 
             List<APlayerActor> player = StateManager.currentState.GetAllActorsOfType<APlayerActor>();
@@ -218,7 +220,7 @@ namespace AbstractShooter.States
                 stringToDraw = "Lives: " + player[0].Lives;
                 Game1.spriteBatch.DrawString(Game1.defaultFont,
                     stringToDraw,
-                    new Vector2(Game1.curResolutionX * 0.9015625F, Game1.curResolutionY * 0.9583F),
+                    new Vector2(Game1.currentResolution.X * 0.9015625F, Game1.currentResolution.Y * 0.9583F),
                     Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
             }
             else if (NOfPlayers == 2 && player.Count == 2)
@@ -226,11 +228,11 @@ namespace AbstractShooter.States
                 stringToDraw = "Lives: " + StateManager.currentState.GetAllActorsOfType<APlayerActor>()[0].Lives + "/" + StateManager.currentState.GetAllActorsOfType<APlayerActor>()[1].Lives;
                 Game1.spriteBatch.DrawString(Game1.defaultFont,
                     stringToDraw,
-                    new Vector2(Game1.curResolutionX * 0.8625F, Game1.curResolutionY * 0.9583F),
+                    new Vector2(Game1.currentResolution.X * 0.8625F, Game1.currentResolution.Y * 0.9583F),
                     Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
             }
 
-#if (DEBUG)
+#if DEBUG
             Game1.DrawFPS();
 #endif
         }
@@ -251,17 +253,17 @@ namespace AbstractShooter.States
         {
             return NOfPlayers;
         }
-        public void addScore(int toAdd)
+        public void AddScore(int toAdd)
         {
             GameInstance.Score += toAdd * Multiplier;
             if (!isEndless)
                 EnemiesLeft--;
         }
-        public void growMultiplier()
+        public void GrowMultiplier()
         {
             Multiplier++;
         }
-        public void resetScore()
+        public void ResetScore()
         {
             GameInstance.Score = 0;
             Multiplier = 1;
@@ -276,9 +278,9 @@ namespace AbstractShooter.States
 
             while (counter < 40 &&
                 (newX < ((Level)StateManager.currentState).grid.NodeSize
-                || newX > (((Level)StateManager.currentState).grid.GridWidth - 3) * ((Level)StateManager.currentState).grid.NodeSize
+                || newX > (((Level)StateManager.currentState).grid.gridWidth - 3) * ((Level)StateManager.currentState).grid.NodeSize
                 || newY < ((Level)StateManager.currentState).grid.NodeSize
-                || newY > (((Level)StateManager.currentState).grid.GridHeight - 3) * ((Level)StateManager.currentState).grid.NodeSize))
+                || newY > (((Level)StateManager.currentState).grid.gridHeight - 3) * ((Level)StateManager.currentState).grid.NodeSize))
             {
                 int RandSide = rand.Next(0, 4);
                 float RandPosition = rand.Next(-50, 51) / 100.0f; //Rand between -0.5 and 0.5
@@ -317,7 +319,7 @@ namespace AbstractShooter.States
         {
             int startX = (int)squareLocation.X;
             int startY = (int)squareLocation.Y;
-            Rectangle squareRect = grid.SquareWorldRectangle(startX, startY).GetRectangle();
+            Rectangle squareRect = grid.SquareWorldRectangle(startX, startY).ToRectangle();
 
             int speed = 63;
             if (currentDifficulty == 1)

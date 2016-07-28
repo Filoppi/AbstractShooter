@@ -17,7 +17,7 @@ namespace AbstractShooter.States
                 string stringToDraw = "Hiscore: " + GameInstance.HiScore.ToString();
                 float stringScale = 0.94F;
                 Vector2 stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
-                Game1.spriteBatch.DrawString(Game1.defaultFont, stringToDraw, new Vector2((Game1.curResolutionX / 2F) - ((stringSize.X / 2F) * Game1.ResolutionScale), Game1.curResolutionY * 0.00694F), Color.Fuchsia, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
+                Game1.spriteBatch.DrawString(Game1.defaultFont, stringToDraw, new Vector2((Game1.currentResolution.X / 2F) - ((stringSize.X / 2F) * Game1.ResolutionScale), Game1.currentResolution.Y * 0.00694F), Color.Fuchsia, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
             }
         }
     }
@@ -59,8 +59,8 @@ namespace AbstractShooter.States
         public override string Name { get { return "Controls"; } }
         public ShowControlsMenuChoice()
         {
-            Child = new Menu();
-            Child.BackgorundScreen = Game1.Get.Content.Load<Texture2D>(@"Textures\ControlScreen");
+            child = new Menu();
+            child.backgorundScreen = Game1.Get.Content.Load<Texture2D>(@"Textures\ControlScreen");
         }
     }
     public class ExitMenuChoice : MenuEntryChoice
@@ -95,7 +95,7 @@ namespace AbstractShooter.States
         {
             get
             {
-                if (Game1.isFullScreen)
+                if (Game1.windowState == WindowState.FullScreen)
                 {
                     return "Windowed";
                 }
@@ -104,7 +104,7 @@ namespace AbstractShooter.States
         }
         public override void Enter()
         {
-            Game1.Get.SetScreenState(Game1.isMaxResolution, !Game1.isFullScreen, Game1.isBorderless);
+            Game1.Get.SetScreenState(Game1.windowState == WindowState.FullScreen ? WindowState.Windowed : WindowState.FullScreen);
         }
     }
     public class BorderlessMenuChoice : MenuEntryChoice
@@ -113,34 +113,16 @@ namespace AbstractShooter.States
         {
             get
             {
-                if (Game1.isBorderless)
+                if (Game1.windowState == WindowState.BorderlessFullScreen)
                 {
-                    return "Disable Borderless";
+                    return "Windowed";
                 }
-                return "Borderless";
+                return "Borderless Fullscreen";
             }
         }
         public override void Enter()
         {
-            Game1.Get.SetScreenState(Game1.isMaxResolution, Game1.isFullScreen, !Game1.isBorderless);
-        }
-    }
-    public class MaximizeMenuChoice : MenuEntryChoice
-    {
-        public override string Name
-        {
-            get
-            {
-                if (Game1.isMaxResolution)
-                {
-                    return "Minimize Window";
-                }
-                return "Maximize Window";
-            }
-        }
-        public override void Enter()
-        {
-            Game1.Get.SetScreenState(!Game1.isMaxResolution, Game1.isFullScreen, Game1.isBorderless);
+            Game1.Get.SetScreenState(Game1.windowState == WindowState.BorderlessFullScreen ? WindowState.Windowed : WindowState.BorderlessFullScreen);
         }
     }
     public class VSyncMenuChoice : MenuEntryChoice
@@ -161,14 +143,52 @@ namespace AbstractShooter.States
             Game1.Get.SetVSync(!Game1.isVSync);
         }
     }
-    public class ClearSaveMenuChoice : MenuEntryChoice
+    public class ResetSaveMenuChoice : MenuEntryChoice
     {
-        public override string Name { get { return "Clear Save"; } }
+        public override string Name { get { return "Reset Save"; } }
         public override void Enter()
         {
-            SaveManager.ClearSave();
+            SaveManager.ResetSave();
         }
     }
+    //public class InterateResolutionsMenuChoice : MenuEntryChoice
+    //{
+    //    private int count;
+    //    private int currentIndex;
+    //    public InterateResolutionsMenuChoice()
+    //    {
+    //        count = Game1.supportedFullScreenResolutions.Count;
+    //    }
+    //    public override string Name
+    //    {
+    //        get
+    //        {
+    //            if (count > 0)
+    //            {
+    //                if (currentIndex < count - 1)
+    //                {
+    //                    return Game1.supportedFullScreenResolutions[currentIndex + 1].ToString();
+    //                }
+    //                return Game1.supportedFullScreenResolutions[0].ToString();
+    //            }
+    //            return "???";
+    //        }
+    //    }
+    //    public override void Enter()
+    //    {
+    //        if (count > 0)
+    //        {
+    //            if (currentIndex < count - 1)
+    //            {
+    //                currentIndex++;
+    //            }
+    //            else
+    //            {
+    //                currentIndex = 0;
+    //            }
+    //        }
+    //    }
+    //}
 
     public class MainMenuState : MenuState
     {
@@ -187,7 +207,8 @@ namespace AbstractShooter.States
             List<MenuEntryChoice> SelectLevel = new List<MenuEntryChoice>() { new Level1MenuChoice(), new Level2MenuChoice(), new Level3MenuChoice() };
             List<MenuEntryChoice> EndlessMode = new List<MenuEntryChoice> { new LevelEndlessMenuChoice() };
             List<MenuEntryChoice> ShowControls = new List<MenuEntryChoice> { new ShowControlsMenuChoice() };
-            List<MenuEntryChoice> Settings = new List<MenuEntryChoice> { new FullScreenMenuChoice(), new MaximizeMenuChoice(), new BorderlessMenuChoice(), new VSyncMenuChoice(), new VolumeMenuChoice(), new ClearSaveMenuChoice() };
+            List<MenuEntryChoice> Settings = new List<MenuEntryChoice> { new FullScreenMenuChoice(), new BorderlessMenuChoice(), new VSyncMenuChoice(), new VolumeMenuChoice(), new ResetSaveMenuChoice() };
+            //List<MenuEntryChoice> Resolution = new List<MenuEntryChoice> { new InterateResolutionsMenuChoice() };
             List<MenuEntryChoice> Quit = new List<MenuEntryChoice> { new ExitMenuChoice() };
 
             menu = new MainMenu(new List<MenuEntry> {
@@ -195,6 +216,7 @@ namespace AbstractShooter.States
                 new MenuEntry(EndlessMode),
                 new MenuEntry(ShowControls),
                 new MenuEntry(Settings),
+                //new MenuEntry(Resolution),
                 new MenuEntry(Quit) },
                 Color.Fuchsia,
                 Color.Black,

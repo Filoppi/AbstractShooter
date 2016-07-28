@@ -215,9 +215,9 @@ namespace AbstractShooter
             List<AMineActor> mines = StateManager.currentState.GetAllActorsOfType<AMineActor>();
             foreach (AMineActor mine in mines)
             {
-                SoundsManager.PlayExplosion(mine.RootComponent.WorldCenter);
-                ParticlesManager.AddMineExplosion(mine.RootComponent.WorldCenter);
-                checkMineSplashDamage(mine.RootComponent.WorldCenter);
+                SoundsManager.PlayExplosion(mine.RootComponent.WorldLocation);
+                ParticlesManager.AddMineExplosion(mine.RootComponent.WorldLocation);
+                checkMineSplashDamage(mine.RootComponent.WorldLocation);
                 mine.Destroy();
             }
         }
@@ -315,7 +315,7 @@ namespace AbstractShooter
                                 //    enemy.Hit();
                                 //}
 
-                                ParticlesManager.AddFlakesEffect(spriteComponent.WorldCenter,
+                                ParticlesManager.AddFlakesEffect(spriteComponent.WorldLocation,
                                     spriteComponent.localVelocity / 30,
                                     GetShotColor());
 
@@ -323,9 +323,9 @@ namespace AbstractShooter
                                 if (enemy.Lives <= 0)
                                 {
                                     SoundsManager.PlayKill(enemy.WorldLocation);
-                                    ((Level)StateManager.currentState).addScore(10);
-                                    ((Level)StateManager.currentState).growMultiplier();
-                                    ParticlesManager.AddExplosion(spriteComponent.WorldCenter,
+                                    ((Level)StateManager.currentState).AddScore(10);
+                                    ((Level)StateManager.currentState).GrowMultiplier();
+                                    ParticlesManager.AddExplosion(spriteComponent.WorldLocation,
                                         spriteComponent.localVelocity / 30, enemy.GetColor());
 
                                     //Spawn PowerUp
@@ -349,11 +349,11 @@ namespace AbstractShooter
 
                                 //Color shotInitialColor = GetShotColor()*0.02F;
                                 //shotInitialColor.A = 1;
-                                ParticlesManager.AddFlakesEffect(spriteComponent.WorldCenter,
+                                ParticlesManager.AddFlakesEffect(spriteComponent.WorldLocation,
                                     spriteComponent.localVelocity / 30,
                                     Color.DarkSlateGray);
 
-                                SoundsManager.PlayHit(spriteComponent.WorldCenter); //Play avoided hit
+                                SoundsManager.PlayHit(spriteComponent.WorldLocation); //Play avoided hit
                             }
                         }
                     }
@@ -362,11 +362,11 @@ namespace AbstractShooter
         }
         private static bool checkMineCollisions(CSpriteComponent mine)
         {
-            if (((Level)StateManager.currentState).grid.IsWallTile(((Level)StateManager.currentState).grid.GetSquareAtPixel(mine.WorldCenter)))
+            if (((Level)StateManager.currentState).grid.IsWallTile(((Level)StateManager.currentState).grid.GetSquareAtPixel(mine.WorldLocation)))
             {
                 mine.Destroy();
-                ParticlesManager.AddMineExplosion(mine.WorldCenter);
-                SoundsManager.PlayExplosion(mine.WorldCenter);
+                ParticlesManager.AddMineExplosion(mine.WorldLocation);
+                SoundsManager.PlayExplosion(mine.WorldLocation);
                 return true;
             }
             else
@@ -378,8 +378,8 @@ namespace AbstractShooter
                         if (mine.CollisionCircle.IsCollidingWith(enemy.RootComponent.CollisionCircle))
                         {
                             mine.Destroy();
-                            ParticlesManager.AddMineExplosion(spriteComponent.WorldCenter);
-                            SoundsManager.PlayExplosion(spriteComponent.WorldCenter);
+                            ParticlesManager.AddMineExplosion(spriteComponent.WorldLocation);
+                            SoundsManager.PlayExplosion(spriteComponent.WorldLocation);
                             return true;
                         }
                     }
@@ -428,9 +428,9 @@ namespace AbstractShooter
                                 SoundsManager.PlayKill(enemy.WorldLocation);
                             }
                             enemy.Destroy();
-                            ((Level) StateManager.currentState).addScore(10);
-                            ((Level) StateManager.currentState).growMultiplier();
-                            ParticlesManager.AddExplosion(spriteComponent.WorldCenter,
+                            ((Level) StateManager.currentState).AddScore(10);
+                            ((Level) StateManager.currentState).GrowMultiplier();
+                            ParticlesManager.AddExplosion(spriteComponent.WorldLocation,
                                 spriteComponent.localVelocity/30, enemy.GetColor());
 
                             //Spawn PowerUp
@@ -444,10 +444,10 @@ namespace AbstractShooter
         }
         private static void checkShotWallImpacts(AProjectileActor shot)
         {
-            if (((Level)StateManager.currentState).grid.IsWallTile(((Level)StateManager.currentState).grid.GetSquareAtPixel(shot.RootComponent.WorldCenter)))
+            if (((Level)StateManager.currentState).grid.IsWallTile(((Level)StateManager.currentState).grid.GetSquareAtPixel(shot.RootComponent.WorldLocation)))
             {
                 shot.Destroy();
-                ParticlesManager.AddSparksEffect(shot.RootComponent.WorldCenter, shot.RootComponent.localVelocity);
+                ParticlesManager.AddSparksEffect(shot.RootComponent.WorldLocation, shot.RootComponent.localVelocity);
             }
         }
         private static void checkPowerupPickups(GameTime gameTime)
@@ -459,7 +459,7 @@ namespace AbstractShooter
                 foreach (APowerUpActor powerUp in powerUps)
                 {
                     //PowerUps[x].Update(gameTime);
-                    if (play.CSpriteComponent.CollisionCircle.IsCollidingWith(powerUp.RootComponent.CollisionCircle))
+                    if (play.SpriteComponent.CollisionCircle.IsCollidingWith(powerUp.RootComponent.CollisionCircle))
                     {
                         switch (powerUp.CSpriteComponent.CurrentFrame)
                         {

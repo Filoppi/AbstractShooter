@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using AbstractShooter.States;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -11,34 +12,37 @@ namespace AbstractShooter
     {
         public int NodeSize = 32; //Pixels? //TO private
         private const int NodeSubNumber = 0; //Small lines in each tile
-        public int GridWidth = 42; //TO private
-        public int GridHeight = 32; //TO private
-        //private Vector2 offset; //Distance between centre of world and upper left edge of this grid (the first node world location)
-
-        private float defaultGravity = 0.044437F; //0.000137F //0.0037F
-        private bool isElastic = false;
+        public int gridWidth = 42; //TO private
+        public int gridHeight = 32; //TO private
+        public float powExp = 0.5F; //private //Temp
+        public bool speed = false; //private //temp
+        private Vector2 worldLocation = Vector2.Zero; //Distance between centre of world and upper left edge of this grid (the first node world location)
         private Color bordersColor = Color.MediumPurple;
         private Color internalColor = Color.PaleTurquoise;
-        private Color[,] internalColorArray;
-        private Color subInternalXColor = Color.PaleGreen;
-        private Color subInternalYColor = Color.PaleGreen;
+        private Color subInternalXColor = Color.PaleTurquoise;
+        private Color subInternalYColor = Color.PaleTurquoise;
         private float bordersThickness = 4.5F;
         private float internalColorThickness = 2F;
-        private float subInternalThickness = 1F;
+        private float subInternalThickness = 0.75F;
+
+        public float defaultGravity = 0; //private //0.044437F //0.000137F //0.0037F
+        public float gravity = 300F; //private
+        public bool hasMemory = false; //private //if true the Grid won't reset every frame to its default state, but will instead be have a reset coefficient which will slowly restore it (allows rubber band effect)
+        //private Color[,] internalColorArray;
+        private float minNodeOffset = 0.65F; //Nodes that have an offset from their original location lessthan this value, will be snapped to their original value
+        private float maxInfluenceDistance = 370F; //Not in the same unit
 
         private Vector2[,] originalNodesLocation;
         private Vector2[,] nodesLocation;
-
-        private Random rand = new Random();
-
-        public void Initialize(int RealMapWidth, int RealMapHeight)
+        
+        public void Initialize(int realMapWidth, int realMapHeight)
         {
-            GridWidth = (int)Math.Round((Double)RealMapWidth / NodeSize);
-            GridHeight = (int)Math.Round((Double)RealMapHeight / NodeSize);
-            originalNodesLocation = new Vector2[GridWidth, GridHeight];
-            internalColorArray = new Color[GridWidth, GridHeight];
+            gridWidth = (int)Math.Round((double)realMapWidth / NodeSize);
+            gridHeight = (int)Math.Round((double)realMapHeight / NodeSize);
+            originalNodesLocation = new Vector2[gridWidth, gridHeight];
+            //internalColorArray = new Color[gridWidth, gridHeight];
             Set();
-            nodesLocation = new Vector2[GridWidth, GridHeight];
+            nodesLocation = new Vector2[gridWidth, gridHeight];
             Reset();
         }
         private Vector2 ClampToWorld(Vector2 location)
@@ -47,103 +51,124 @@ namespace AbstractShooter
             {
                 location.X = NodeSize;
             }
-            else if (location.X > (GridWidth-2) * NodeSize)
+            else if (location.X > (gridWidth - 2) * NodeSize)
             {
-                location.X = (GridWidth - 2) * NodeSize;
+                location.X = (gridWidth - 2) * NodeSize;
             }
             if (location.Y < NodeSize)
             {
                 location.Y = NodeSize;
             }
-            else if (location.Y > (GridHeight - 2) * NodeSize)
+            else if (location.Y > (gridHeight - 2) * NodeSize)
             {
-                location.Y = (GridHeight - 2) * NodeSize;
+                location.Y = (gridHeight - 2) * NodeSize;
             }
 
             return location;
         }
 
-        public void Update()
+        public void Update(GameTime gameTime)
         {
             //Temp code to update colors
             //Vector4 asd = internalColor.ToVector4();
             //float mina = 60 / 255F;
             //float max = 197 / 255F;
             //internalColor = new Color(MathExtention.PositiveCycle(asd.X + (0.005F * (float)rand.Next(3, 70) / 100f), rand.Next(40, 90) / 255f, rand.Next(140, 230) / 255f),
-            //    MathExtention.PositiveCycle(asd.X + (0.005F * (float)rand.Next(3, 70) / 100f), rand.Next(40, 90) / 255f, rand.Next(140, 230) / 255f),
-            //    MathExtention.PositiveCycle(asd.X + (0.005F * (float)rand.Next(3, 70) / 100f), rand.Next(40, 90) / 255f, rand.Next(140, 230) / 255f),
+            //    MathExtention.PositiveCycle(asd.X + (0.005F * (float)MathExtention.Rand.Next(3, 70) / 100f), MathExtention.Rand.Next(40, 90) / 255f, MathExtention.Rand.Next(140, 230) / 255f),
+            //    MathExtention.PositiveCycle(asd.X + (0.005F * (float)MathExtention.Rand.Next(3, 70) / 100f), MathExtention.Rand.Next(40, 90) / 255f, MathExtention.Rand.Next(140, 230) / 255f),
             //    asd.W);
 
-            if (defaultGravity != 0)
+            if (!hasMemory)
             {
-                for (int i = 0; i < GridWidth; i++)
+                Reset();
+            }
+
+            foreach (AActor actor in StateManager.currentState.GetAllActors())
+            {
+                float actorMass = actor.GetMass();
+                if (actorMass != 0F)
                 {
-                    for (int k = 0; k < GridHeight; k++)
+                    if (speed)
                     {
-                        Vector2 location = new Vector2(NodeSize * (float)i, NodeSize * (float)k);
-                        float dist = Vector2.DistanceSquared(nodesLocation[i, k], location);
-                        Vector2 dir = nodesLocation[i, k] - location;
-                        float min = 0.65F;
-                        if (dist > min * min)
+                        actorMass *= actor.RootComponent.localVelocity.Length();
+                    }
+                    Influence(actor.GetMassCenter(), gravity * actorMass * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale);
+                }
+            }
+            //OR:
+            //foreach (CSpriteComponent spriteComponent in StateManager.currentState.GetAllSceneComponentsOfType<CSpriteComponent>())
+            //{
+            //    Influence(spriteComponent.WorldLocation, gravity * spriteComponent.localVelocity.Length() * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale);
+            //}
+
+            if (hasMemory)
+            {
+                for (int i = 0; i < gridWidth; i++)
+                {
+                    for (int k = 0; k < gridHeight; k++)
+                    {
+                        Vector2 originalNodeLocation = originalNodesLocation[i, k];
+                        float distSquared = Vector2.DistanceSquared(nodesLocation[i, k], originalNodeLocation);
+                        Vector2 dir = nodesLocation[i, k] - originalNodeLocation;
+                        if (distSquared > minNodeOffset * minNodeOffset)
                         {
-                            dir.Normalize();
-                            nodesLocation[i, k] += (-defaultGravity * dir) * dist;
-                            if (Vector2.Dot(nodesLocation[i, k] - location, dir) <= 0)
+                            if (defaultGravity != 0)
                             {
-                                nodesLocation[i, k] = location;
+                                dir.Normalize();
+                                nodesLocation[i, k] += (-defaultGravity * dir) * distSquared;
+                                if (Vector2.Dot(nodesLocation[i, k] - originalNodeLocation, dir) <= 0)
+                                {
+                                    nodesLocation[i, k] = originalNodeLocation;
+                                }
                             }
                         }
                         else
                         {
-                            nodesLocation[i, k] = location;
+                            nodesLocation[i, k] = originalNodeLocation;
                         }
                     }
                 }
             }
-            else if (isElastic)
-            {
-                Reset();
-            }
         }
         public void Set()
         {
-            for (int i = 0; i < GridWidth; ++i)
+            for (int i = 0; i < gridWidth; ++i)
             {
-                for (int k = 0; k < GridHeight; ++k)
+                for (int k = 0; k < gridHeight; ++k)
                 {
-                    originalNodesLocation[i, k] = new Vector2(NodeSize * (float)i, NodeSize * (float)k);
+                    originalNodesLocation[i, k] = new Vector2(NodeSize * (float)i, NodeSize * (float)k) + worldLocation;
                     //internalColorArray[i, k] = MathExtention.GetRandomColor();
                 }
             }
         }
         public void Reset()
         {
-            for (int i = 0; i < GridWidth; ++i)
+            for (int i = 0; i < gridWidth; ++i)
             {
-                for (int k = 0; k < GridHeight; ++k)
+                for (int k = 0; k < gridHeight; ++k)
                 {
                     nodesLocation[i, k] = originalNodesLocation[i, k];
                 }
             }
         }
-        public void Influence(Vector2 location, float gravity)
+        public void Influence(Vector2 forceLocation, float force)
         {
             int startX, endX, startY, endY;
-            if (isElastic)
+            if (!hasMemory)
             {
                 startX = 2;
-                endX = GridWidth - 3;
+                endX = gridWidth - 3;
 
                 startY = 2;
-                endY = GridHeight - 3;
+                endY = gridHeight - 3;
             }
             else
             {
                 startX = Math.Max(GetSquareByPixel((int)Camera.TopLeft.X), 2);
-                endX = Math.Min(GetSquareByPixel((int)Camera.BottomRight.X), GridWidth - 3);
+                endX = Math.Min(GetSquareByPixel((int)Camera.BottomRight.X), gridWidth - 3);
 
                 startY = Math.Max(GetSquareByPixel((int)Camera.TopLeft.Y), 2);
-                endY = Math.Min(GetSquareByPixel((int)Camera.BottomRight.Y), GridHeight - 3);
+                endY = Math.Min(GetSquareByPixel((int)Camera.BottomRight.Y), gridHeight - 3);
             }
             
             for (int i = startX; i <= endX; ++i)
@@ -151,23 +176,22 @@ namespace AbstractShooter
                 for (int k = startY; k <= endY; ++k)
                 {
                     double dist;
-                    if (gravity < 0) //To refactor...
+                    if (force < 0) //To refactor...
                     {
-                        dist = Math.Pow(Vector2.DistanceSquared(new Vector2(NodeSize * (float)i, NodeSize * (float)k), location), 0.5);
+                        dist = Math.Pow(Vector2.DistanceSquared(new Vector2(NodeSize * (float)i, NodeSize * (float)k), forceLocation), powExp);
                     }
                     else
                     {
-                        dist = Math.Pow(Vector2.DistanceSquared(nodesLocation[i, k], location), 0.5);
+                        dist = Math.Pow(Vector2.DistanceSquared(nodesLocation[i, k], forceLocation), powExp);
                     }
-                    double min = 370F;
-                    if (dist < min * min)
+                    if (dist < maxInfluenceDistance * maxInfluenceDistance)
                     {
-                        Vector2 dir = nodesLocation[i, k] - location;
+                        Vector2 dir = nodesLocation[i, k] - forceLocation;
                         dir.Normalize();
-                        nodesLocation[i, k] = ClampToWorld(nodesLocation[i, k] + ((gravity * dir) / Math.Max((float)dist, 24)));
-                        if (gravity < 0 && Vector2.Dot(nodesLocation[i, k] - location, dir) <= 0)
+                        nodesLocation[i, k] = ClampToWorld(nodesLocation[i, k] + ((force * dir) / Math.Max((float)dist, 1F)));
+                        if (force < 0 && Vector2.Dot(nodesLocation[i, k] - forceLocation, dir) <= 0)
                         {
-                            nodesLocation[i, k] = location;
+                            nodesLocation[i, k] = forceLocation;
                         }
                     }
                 }
@@ -207,13 +231,13 @@ namespace AbstractShooter
         }
         public int GetTileAtSquare(int tileX, int tileY)
         {
-            if (tileX < GridWidth - 1)
+            if (tileX < gridWidth - 1)
             {
                 if (tileX == 0 || tileY == 0)
                 {
                     return 1;
                 }
-                else if (tileX < GridWidth - 2 && tileY < GridHeight - 2)
+                else if (tileX < gridWidth - 2 && tileY < gridHeight - 2)
                 {
                     return 0;
                 }
@@ -222,13 +246,13 @@ namespace AbstractShooter
                     return 1;
                 }
             }
-            if (tileY < GridHeight - 1)
+            if (tileY < gridHeight - 1)
             {
                 if (tileX == 0 || tileY == 0 || tileX == 1)
                 {
                     return 1;
                 }
-                else if (tileY < GridHeight - 2 && tileX < GridWidth - 2)
+                else if (tileY < gridHeight - 2 && tileX < gridWidth - 2)
                 {
                     return 0;
                 }
@@ -263,56 +287,80 @@ namespace AbstractShooter
         public void Draw()
         {
             int startX = Math.Max(GetSquareByPixel((int)Camera.TopLeft.X), 0);
-            int endX = Math.Min(GetSquareByPixel((int)Camera.BottomRight.X), GridWidth - 1);
+            int endX = Math.Min(GetSquareByPixel((int)Camera.BottomRight.X), gridWidth - 1);
 
             int startY = Math.Max(GetSquareByPixel((int)Camera.TopLeft.Y), 0);
-            int endY = Math.Min(GetSquareByPixel((int)Camera.BottomRight.Y) + 1, GridHeight - 1); //+ 1 is Temp Tapullo
+            int endY = Math.Min(GetSquareByPixel((int)Camera.BottomRight.Y), gridHeight - 1);
+
+            //Temp to draw everything
+            startX = 0;
+            startY = 0;
+            endX = gridWidth - 1;
+            endY = gridHeight - 1;
 
             //To reduce DrawLine number by calling just one for straigth lines
             for (int i = startX; i <= endX; ++i)
             {
                 for (int k = startY; k <= endY; ++k)
                 {
-                    if (i < GridWidth - 1)
+                    if (i < gridWidth - 1)
                     {
                         if (i == 0 || k == 0 || k == 1)
                         {
-                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i + 1, k]), bordersColor, bordersThickness, DrawGroup.Background);
+                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i + 1, k]), bordersColor, bordersThickness, DrawGroup.Background3);
+
+                            if (k == 1 && i != 0 && (i < gridWidth - 2 && k < gridHeight - 2))
+                            {
+                                for (int n = 1; n <= NodeSubNumber; ++n)
+                                {
+                                    Vector2 delta = new Vector2(0, n * NodeSize / (NodeSubNumber + 1));
+                                    Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k] + delta), Camera.WorldToScreenSpace(nodesLocation[i + 1, k] + delta), subInternalXColor, subInternalThickness, DrawGroup.Background1);
+                                }
+                            }
                         }
-                        else if (i < GridWidth - 2 && k < GridHeight - 2)
+                        else if (i < gridWidth - 2 && k < gridHeight - 2)
                         {
-                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i + 1, k]), internalColor, internalColorThickness, DrawGroup.Background);
+                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i + 1, k]), internalColor, internalColorThickness, DrawGroup.Background2);
 
                             for (int n = 1; n <= NodeSubNumber; ++n)
                             {
                                 Vector2 delta = new Vector2(0, n * NodeSize / (NodeSubNumber + 1));
-                                Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k] + delta), Camera.WorldToScreenSpace(nodesLocation[i + 1, k] + delta), subInternalXColor, subInternalThickness, DrawGroup.Background);
+                                Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k] + delta), Camera.WorldToScreenSpace(nodesLocation[i + 1, k] + delta), subInternalXColor, subInternalThickness, DrawGroup.Background1);
                             }
                         }
                         else
                         {
-                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i + 1, k]), bordersColor, bordersThickness, DrawGroup.Background);
+                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i + 1, k]), bordersColor, bordersThickness, DrawGroup.Background3);
                         }
                     }
-                    if (k < GridHeight - 1)
+                    if (k < gridHeight - 1)
                     {
                         if (i == 0 || k == 0 || i == 1)
                         {
-                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i, k + 1]), bordersColor, bordersThickness, DrawGroup.Background);
+                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i, k + 1]), bordersColor, bordersThickness, DrawGroup.Background3);
+
+                            if (i == 1 && k != 0 && (k < gridHeight - 2 && i < gridWidth - 2))
+                            {
+                                for (int n = 1; n <= NodeSubNumber; ++n)
+                                {
+                                    Vector2 delta = new Vector2(n * NodeSize / (NodeSubNumber + 1), 0);
+                                    Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k] + delta), Camera.WorldToScreenSpace(nodesLocation[i, k + 1] + delta), subInternalYColor, subInternalThickness, DrawGroup.Background1);
+                                }
+                            }
                         }
-                        else if (k < GridHeight - 2 && i < GridWidth - 2)
+                        else if (k < gridHeight - 2 && i < gridWidth - 2)
                         {
-                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i, k + 1]), internalColor, internalColorThickness, DrawGroup.Background);
+                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i, k + 1]), internalColor, internalColorThickness, DrawGroup.Background2);
                             
                             for (int n = 1; n <= NodeSubNumber; ++n)
                             {
                                 Vector2 delta = new Vector2(n * NodeSize / (NodeSubNumber + 1), 0);
-                                Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k] + delta), Camera.WorldToScreenSpace(nodesLocation[i, k + 1] + delta), subInternalYColor, subInternalThickness, DrawGroup.Background);
+                                Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k] + delta), Camera.WorldToScreenSpace(nodesLocation[i, k + 1] + delta), subInternalYColor, subInternalThickness, DrawGroup.Background1);
                             }
                         }
                         else
                         {
-                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i, k + 1]), bordersColor, bordersThickness, DrawGroup.Background);
+                            Game1.spriteBatch.DrawLine(Camera.WorldToScreenSpace(nodesLocation[i, k]), Camera.WorldToScreenSpace(nodesLocation[i, k + 1]), bordersColor, bordersThickness, DrawGroup.Background3);
                         }
                     }
                 }

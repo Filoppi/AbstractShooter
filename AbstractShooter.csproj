@@ -100,7 +100,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Source\Components\SceneComponent.cs" />
-    <Compile Include="Source\Actors\Actors.cs" />
+    <Compile Include="Source\Actors\DefaultActors.cs" />
     <Compile Include="Source\Actors\Characters\Enemies\SkeletalEnemy.cs" />
     <Compile Include="Source\Actors\Objects\Objects.cs" />
     <Compile Include="Source\Components\AnimatedSpriteComponent.cs" />
@@ -133,7 +133,7 @@
     <Compile Include="Source\States\Specific\Levels.cs" />
     <Compile Include="Source\Misc\GamePlay\Camera.cs" />
     <Compile Include="Source\Misc\GamePlay\ParticlesManager.cs" />
-    <Compile Include="Source\Misc\GameManager.cs" />
+    <Compile Include="Source\Misc\GameMode.cs" />
     <Compile Include="Source\Misc\GamePlay\SoundsManager.cs" />
     <Compile Include="Source\Misc\GamePlay\TileMap.cs" />
     <Compile Include="Source\Misc\GamePlay\WeaponsAndFireManager.cs" />
@@ -142,6 +142,9 @@
     <Compile Include="Source\States\MenuState.cs" />
     <Compile Include="Source\States\Specific\NextLevel.cs" />
     <Compile Include="Source\States\Specific\PauseState.cs" />
+    <Compile Include="Source\Utility\Angle.cs" />
+    <Compile Include="Source\Utility\Debug.cs" />
+    <Compile Include="Source\Utility\Extensions.cs" />
     <Compile Include="Source\Utility\Utility.cs" />
     <Compile Include="Source\Utility\Primitives2DDraw.cs" />
   </ItemGroup>
@@ -151,6 +154,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>

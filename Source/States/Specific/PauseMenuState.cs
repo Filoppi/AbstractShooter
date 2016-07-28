@@ -18,8 +18,8 @@ namespace AbstractShooter.States
             float stringScale = 1F;
             Vector2 stringSize = Game1.defaultFont.MeasureString(stringToDraw) * Game1.defaultFontScale * stringScale;
             Game1.spriteBatch.DrawString(Game1.defaultFont, stringToDraw,
-                new Vector2((Game1.curResolutionX / 2F) - ((stringSize.X / 2F) * Game1.ResolutionScale),
-                Game1.curResolutionY * 0.00694F), Color.White, 0, Vector2.Zero,
+                new Vector2((Game1.currentResolution.X / 2F) - ((stringSize.X / 2F) * Game1.ResolutionScale),
+                Game1.currentResolution.Y * 0.00694F), Color.White, 0, Vector2.Zero,
                 Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
         }
     }
@@ -60,7 +60,7 @@ namespace AbstractShooter.States
             List<MenuEntryChoice> Resume = new List<MenuEntryChoice> { new ResumeMenuChoice() };
             List<MenuEntryChoice> Restart = new List<MenuEntryChoice> { new RestartMenuChoice() };
             List<MenuEntryChoice> ShowControls = new List<MenuEntryChoice> { new ShowControlsMenuChoice() };
-            List<MenuEntryChoice> Settings = new List<MenuEntryChoice> { new FullScreenMenuChoice(), new MaximizeMenuChoice(), new BorderlessMenuChoice(), new VSyncMenuChoice(), new VolumeMenuChoice() };
+            List<MenuEntryChoice> Settings = new List<MenuEntryChoice> { new FullScreenMenuChoice(), new BorderlessMenuChoice(), new VSyncMenuChoice(), new VolumeMenuChoice() };
             List<MenuEntryChoice> ReturnToMainMenu = new List<MenuEntryChoice> { new MainMenuMenuChoice() };
             List<MenuEntryChoice> Quit = new List<MenuEntryChoice> { new ExitMenuChoice() };
 

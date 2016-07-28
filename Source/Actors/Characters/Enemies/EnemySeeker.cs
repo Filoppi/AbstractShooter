@@ -179,7 +179,7 @@ namespace AbstractShooter
         }
         protected override void DetermineMoveDirection()
         {
-            ObjectAngle = StateManager.currentState.GetAllActorsOfType<APlayerActor>()[FollowingPlayerN].RootComponent.WorldCenter - rootComponent.WorldCenter;
+            ObjectAngle = StateManager.currentState.GetAllActorsOfType<APlayerActor>()[FollowingPlayerN].RootComponent.WorldLocation - rootComponent.WorldLocation;
             ObjectAngle.Normalize();
         }
 

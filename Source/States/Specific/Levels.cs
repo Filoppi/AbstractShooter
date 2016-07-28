@@ -9,7 +9,7 @@
             EnemySpawTimer = 0.55f;
             levelDimensionX = 2330;
             levelDimensionY = 1430;
-            TimeLeft = 61;
+            TimeLeft = 6100; //61
             EnemiesLeft = 80;
             isEndless = false;
             levelIndex = 1;

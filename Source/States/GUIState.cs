@@ -15,7 +15,7 @@ namespace AbstractShooter.States
 
             if (background != null)
             {
-                Game1.spriteBatch.Draw(background, new Rectangle(0, 0, Game1.curResolutionX, Game1.curResolutionY), Color.White);
+                Game1.spriteBatch.Draw(background, new Rectangle(0, 0, Game1.currentResolution.X, Game1.currentResolution.Y), Color.White);
             }
         }
     }

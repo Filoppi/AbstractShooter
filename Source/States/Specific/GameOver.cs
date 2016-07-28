@@ -35,7 +35,7 @@ namespace AbstractShooter.States
             Game1.spriteBatch.DrawString(
             Game1.defaultFont,
             stringToDraw,
-            new Vector2(((Game1.curResolutionX / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), ((Game1.curResolutionY / 2.0f) - ((stringSize.Y / 2F) * Game1.ResolutionScale))),
+            new Vector2(((Game1.currentResolution.X / 2.0f) - ((stringSize.X / 2F) * Game1.ResolutionScale)), ((Game1.currentResolution.Y / 2.0f) - ((stringSize.Y / 2F) * Game1.ResolutionScale))),
                 Color.WhiteSmoke, 0, Vector2.Zero, Game1.ResolutionScale * Game1.defaultFontScale * stringScale, SpriteEffects.None, 0);
 
             base.EndDraw();

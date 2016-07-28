@@ -173,7 +173,7 @@ namespace AbstractShooter
                     {
                         Game1.spriteBatch.Draw(
                             StateManager.currentState.spriteSheet,
-                            SquareScreenRectangle(x, y).GetRectangle(),
+                            SquareScreenRectangle(x, y).ToRectangle(),
                             tiles[GetTileAtSquare(x, y)],
                             Color.White);
 

@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 namespace AbstractShooter
 {
+    /// <summary>
+    /// Base default Actor which only has a SceneComponent.
+    /// </summary>
     public class ASceneActor : AActor
     {
         public ASceneActor()
@@ -13,10 +16,14 @@ namespace AbstractShooter
         }
     }
 
+    /// <summary>
+    /// An Actor that has a SpriteComponent as RootComponent
+    /// </summary>
     public class ASpriteActor : AActor
     {
         protected CSpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public CSpriteComponent CSpriteComponent { get { return spriteComponent; } }
+        public CSpriteComponent SpriteComponent { get { return spriteComponent; } }
+
         public ASpriteActor(Texture2D texture, List<Rectangle> frames,
             ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Default,
             ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
@@ -26,19 +33,16 @@ namespace AbstractShooter
             spriteComponent = new CSpriteComponent(this, texture, frames, null, updateGroup, layerDepth, location, isLocationWorld, relativeScale, acceleration, maxSpeed, tintColor);
             rootComponent = spriteComponent;
         }
-
-        protected override void UpdateActor(GameTime gameTime)
-        {
-            //((Level)StateManager.currentState).grid.Influence(rootComponent.WorldCenter, gravity);
-            //Get Gravity Centre by summing up all SceneComponents Weights
-            ((Level)StateManager.currentState).grid.Influence(rootComponent.WorldLocation, 300F * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale * rootComponent.localVelocity.Length()); //Should be WorldCenter, not location
-        }
     }
 
+    /// <summary>
+    /// An Actor that has a AnimatedSprite as RootComponent
+    /// </summary>
     public class AAnimatedSpriteActor : AActor
     {
         protected CAnimatedSpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public CAnimatedSpriteComponent CSpriteComponent { get { return spriteComponent; } }
+        public CAnimatedSpriteComponent SpriteComponent { get { return spriteComponent; } }
+
         public AAnimatedSpriteActor(Texture2D texture, List<Rectangle> frames,
             ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Default,
             ComponentUpdateGroup updateGroup = ComponentUpdateGroup.BeforeActor, float layerDepth = DrawGroup.Default,
@@ -49,19 +53,16 @@ namespace AbstractShooter
             rootComponent = spriteComponent;
             spriteComponent.GenerateDefaultAnimation();
         }
-
-        protected override void UpdateActor(GameTime gameTime)
-        {
-            //((Level)StateManager.currentState).grid.Influence(rootComponent.WorldCenter, gravity);
-            //Get Gravity Centre by summing up all SceneComponents Weights
-            ((Level)StateManager.currentState).grid.Influence(rootComponent.WorldLocation, 300F * (float)gameTime.ElapsedGameTime.TotalSeconds * StateManager.currentState.TimeScale * rootComponent.localVelocity.Length()); //Should be WorldCenter, not location
-        }
     }
 
+    /// <summary>
+    /// An Actor that has a TemporarySprite as RootComponent
+    /// </summary>
     public class ATemporarySpriteActor : AActor
     {
         protected CTemporarySpriteComponent spriteComponent; //SceneComponents. No list is stored directly.
-        public CTemporarySpriteComponent CSpriteComponent { get { return spriteComponent; } }
+        public CTemporarySpriteComponent SpriteComponent { get { return spriteComponent; } }
+
         public ATemporarySpriteActor(Texture2D texture, List<Rectangle> frames,
             float remainingDuration, float startFlashingAtRemainingTime,
             ActorUpdateGroup actorUpdateGroup = ActorUpdateGroup.Default,

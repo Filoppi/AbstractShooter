@@ -208,10 +208,16 @@ namespace AbstractShooter
         {
             return rootComponent.GetTotalMass();
         }
-
         public Vector2 GetMassCenter()
         {
-            return rootComponent.GetMassCenter();
+            Vector2 massCenter = Vector2.Zero;
+            List<CSceneComponent> components = new List<CSceneComponent>();
+            rootComponent.GetAllDescendantsAndSelf(ref components);
+            foreach (CSceneComponent component in components)
+            {
+                massCenter += component.WorldLocation;
+            }
+            return components.Count > 0 ?  massCenter / components.Count : Vector2.Zero; //ToDo: Weight Average based on Mass
         }
 
         public Vector2 WorldLocation { get { return rootComponent.WorldLocation; } set { rootComponent.WorldLocation = value; } }
