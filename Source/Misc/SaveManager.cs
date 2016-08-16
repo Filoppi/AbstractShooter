@@ -24,8 +24,8 @@ namespace AbstractShooter
                 w.Write((int)Game1.windowState);
                 w.Write(Game1.isVSync);
                 w.Write(SoundsManager.Mute);
-                stream.Close();
                 w.Close();
+                //stream.Close();
             }
             catch (Exception ex)
             {
@@ -52,7 +52,7 @@ namespace AbstractShooter
                 saveStructure.isVSync = r.ReadBoolean();
                 saveStructure.isMute = r.ReadBoolean();
                 r.Close();
-                stream.Close();
+                //stream.Close();
 
                 //if succeeded:
                 GameInstance.HiScore = saveStructure.HiScore;
@@ -77,8 +77,8 @@ namespace AbstractShooter
                 w.Write(0);
                 w.Write(false);
                 w.Write(false);
-                stream.Close();
                 w.Close();
+                //stream.Close();
             }
             catch (Exception ex)
             {

@@ -55,7 +55,7 @@ namespace AbstractShooter
         public static WindowState windowState; //public set private get
         public static bool isVSync; //public get private set
         private static bool justLaunched = true;
-        private static System.Timers.Timer timer;
+        //private static System.Timers.Timer timer;
         public static SpriteFont defaultFont; //public get private set
         public static float defaultFontScale = 0.5F; //public get private set
         public static SpriteFont smallerFont; //public get private set
@@ -635,10 +635,10 @@ namespace AbstractShooter
             renderTarget1 = new RenderTarget2D(GraphicsDevice, currentResolution.X, currentResolution.Y, false, pp.BackBufferFormat, pp.DepthStencilFormat, pp.MultiSampleCount, RenderTargetUsage.DiscardContents);
             renderTarget2 = new RenderTarget2D(GraphicsDevice, currentResolution.X, currentResolution.Y, false, pp.BackBufferFormat, pp.DepthStencilFormat, pp.MultiSampleCount, RenderTargetUsage.DiscardContents);
             
-            if (timer != null)
-            {
-                timer.Close();
-            }
+            //if (timer != null)
+            //{
+            //    timer.Close();
+            //}
             if (windowState != WindowState.FullScreen)
             {
                 //if (justLaunched || centerWindow)
