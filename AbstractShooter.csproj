@@ -99,6 +99,7 @@
     <StartupObject>AbstractShooter.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Source\Components\ParticleEmitterComponent.cs" />
     <Compile Include="Source\Components\SceneComponent.cs" />
     <Compile Include="Source\Actors\DefaultActors.cs" />
     <Compile Include="Source\Actors\Characters\Enemies\SkeletalEnemy.cs" />
