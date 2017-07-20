@@ -4,25 +4,14 @@ namespace UnrealMono
 {
 	public delegate void DestroyedEventHandler(CComponent sender);
 
-	//public enum InputModes
-	//{
-	//    KeyboardMouse,
-	//    Keyboard,
-	//    Mouse,
-	//    GamePad,
-	//    KeyboardMouseGamePad1, //Allows the use of everything together
-	//    KeyboardMouseGamePads, //Allows the use of everything together for Multiplayer
-	//    None
-	//};
-
 	public abstract class CComponent
 	{
 		protected AActor owner;
 		public AActor Owner { get { return owner; } }
 
 		public ComponentUpdateGroup updateGroup = ComponentUpdateGroup.AfterActor;
-
-		public event DestroyedEventHandler Destroyed;
+        
+		public event DestroyedEventHandler destroyed;
 
 		public bool isUpdateEnabled = true;
 		protected bool pendingDestroy;
@@ -41,7 +30,7 @@ namespace UnrealMono
 
 		protected virtual void BroadcastDestroyed()
 		{
-			Destroyed?.Invoke(this);
+			destroyed?.Invoke(this);
 		}
 
 		protected bool InternalSetOwner(AActor owner)

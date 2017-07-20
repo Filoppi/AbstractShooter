@@ -46,9 +46,20 @@ namespace InputManagement
 		public static readonly InputMode GamePad2 = new InputMode(false, false, 1, true);
 		public static readonly InputMode GamePad3 = new InputMode(false, false, 2, true);
 		public static readonly InputMode GamePad4 = new InputMode(false, false, 3, true);
-	}
+    }
 
-	public enum MouseButtons
+    //public enum InputModes
+    //{
+    //    KeyboardMouse,
+    //    Keyboard,
+    //    Mouse,
+    //    GamePad,
+    //    KeyboardMouseGamePad1, //Allows the use of everything together
+    //    KeyboardMouseGamePads, //Allows the use of everything together for Multiplayer
+    //    None
+    //};
+
+    public enum MouseButtons
 	{
 		Left,
 		Middle,
@@ -88,7 +99,7 @@ namespace InputManagement
 
 	public class ActionBindingWithEvent
 	{
-		public event KeyEventHandler actionBidingEvent = null;
+		public event KeyEventHandler actionBidingEvent;
 
 		public readonly ActionBinding actionBinding;
 
@@ -99,11 +110,8 @@ namespace InputManagement
 
 		public void BroadcastBidingChanged()
 		{
-			if (actionBidingEvent != null)
-			{
-				actionBidingEvent();
-			}
-		}
+            actionBidingEvent?.Invoke();
+        }
 	}
 
 	public class ActionBinding
@@ -146,7 +154,7 @@ namespace InputManagement
 
 	public class AxisBindingWithEvent
 	{
-		public event AxisEventHandler axisBindingEvent = null;
+		public event AxisEventHandler axisBindingEvent;
 
 		public readonly AxisBinding axisBinding;
 
@@ -157,11 +165,8 @@ namespace InputManagement
 
 		public void BroadcastBidingChanged(float value)
 		{
-			if (axisBindingEvent != null)
-			{
-				axisBindingEvent(value);
-			}
-		}
+            axisBindingEvent?.Invoke(value);
+        }
 	}
 
 	public class AxisBinding

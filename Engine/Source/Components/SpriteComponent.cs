@@ -6,10 +6,11 @@ using System.Collections.Generic;
 namespace UnrealMono
 {
     public class CSpriteComponent : CSceneComponent
-	{
-		private Texture2D texture;
+    {
+        [UnrealMono(category = "SpriteComponent", serializeAs = typeof(string))]
+        private Texture2D texture;
 
-		protected List<Rectangle> frames = new List<Rectangle>();
+        protected List<Rectangle> frames = new List<Rectangle>();
 		protected List<float> framesCollisionRadius = new List<float>();
 
 		protected Color tintColor = Color.White;

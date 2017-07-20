@@ -11,6 +11,22 @@ using Keys = Microsoft.Xna.Framework.Input.Keys;
 
 namespace UnrealMono
 {
+    [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property, AllowMultiple = false)]
+    public class UnrealMonoAttribute : System.Attribute
+    {
+        public float min = 0f;
+        public float max = 0f;
+        public bool hidden = false; //To make visible = true
+        //public bool transient = false; //Used for game save but not for asset editor
+        public string category = "";
+        public string customName = "";
+        public Type serializeAs;
+        //default value?
+        //deprecated?
+        //public string oldVariableName = ""; //to keep the old value when the variable changes name
+        //Editor only?
+    }
+
 #if DEBUG
     public struct DebugString
     {

@@ -9,7 +9,7 @@ namespace UnrealMono
 	/// </summary>
 	public class ASceneActor : AActor
 	{
-		public ASceneActor()
+		public ASceneActor() //TO1 call base?
 		{
 			rootComponent = new CSceneComponent(this);
 		}

@@ -19,14 +19,32 @@ namespace UnrealMono
 		MAX
 	}
 
-	public abstract class AActor
-	{
-		protected CSceneComponent rootComponent; //SceneComponents; no CSceneComponent list is directly stored
+    public class AActor
+    {
+        [UnrealMono(category = "Actor", serializeAs = typeof(Dictionary<string, string>))]
+        protected CSceneComponent rootComponent; //SceneComponents; no CSceneComponent list is directly stored
         public CSceneComponent RootComponent { get { return rootComponent; } }
 		protected List<CComponent> components = new List<CComponent>(); //Other components that are not CSceneComponent
-		public List<CComponent> Components { get { return components; } }
+        [UnrealMono(customName = "Components", category = "Components")] //TO1 check
+        public List<CComponent> Components { get { return components; } }
 
-		private ActorUpdateGroup updateGroup = ActorUpdateGroup.Default;
+	    //TO1 //To add transform and ...
+        [UnrealMono(customName = "Components Types and Attachement Index", category = "Actor")]
+        public Dictionary<int, string> componentsTypesAndAttachementIndex;
+        
+        [UnrealMono(customName = "ijniub", category = "Actor")]
+	    public Vector3 ijniub;
+        
+	    [UnrealMono]
+	    public Vector2 Test { get; set; }
+
+        [UnrealMono(customName = "rthrt", category = "Actor")]
+	    public List<Vector3> rthrt;
+
+	    [UnrealMono(customName = "papa", category = "Actor")]
+	    public List<string> papa;
+
+        private ActorUpdateGroup updateGroup = ActorUpdateGroup.Default;
 		public ActorUpdateGroup UpdateGroup { get { return updateGroup; } }
 		public bool isActorUpdateEnabled = true;
 		public bool isComponentsUpdateEnabled = true;
@@ -52,7 +70,13 @@ namespace UnrealMono
 
 		public float drawGroupDepth;
 
-		public AActor(ActorUpdateGroup updateGroup = ActorUpdateGroup.Default)
+	    public AActor()
+	    {
+	        updateGroup = ActorUpdateGroup.Default;
+	        //StateManager.currentState.RegisterActor(this); //TO1
+	    }
+
+        public AActor(ActorUpdateGroup updateGroup = ActorUpdateGroup.Default)
 		{
 			this.updateGroup = updateGroup;
 			StateManager.currentState.RegisterActor(this);
@@ -161,6 +185,8 @@ namespace UnrealMono
 		{
 			return components.Remove(component);
 		}
+	    
+	    //To1 Add AddSceneComponent ?
 
 		public bool RemoveSceneComponent(CSceneComponent sceneComponent)
 		{
